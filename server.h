@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 #include <QTcpServer>
 #include <QTcpSocket>
 
@@ -9,7 +10,6 @@ class Server : public QObject
     Q_OBJECT
 public:
     explicit Server(QObject *parent = 0);
-
 public slots:
     void slotNewConnection();
     void slotServerRead();

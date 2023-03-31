@@ -1,6 +1,9 @@
-QT += core gui network
+QT += network quick
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-CONFIG += c++11
+CONFIG += c++11 qmltypes
+
+QML_IMPORT_NAME = client
+QML_IMPORT_MAJOR_VERSION = 1
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -15,14 +18,19 @@ CONFIG += c++11
 
 SOURCES += \
         client.cpp \
+        dialogmodel.cpp \
         main.cpp \
         server.cpp
 
 HEADERS += \
     client.h \
+    dialogmodel.h \
     server.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    qml.qrc
