@@ -7,10 +7,12 @@ Client::Client(QObject *parent)
     connect(mTcpSocket, &QAbstractSocket::readyRead,this ,&Client::onRedyRead);
     connect(mTcpSocket, &QAbstractSocket::connected,this ,&Client::onConnected);
     connect(mTcpSocket, &QAbstractSocket::disconnected,this ,&Client::onDisconnected);
+
+    //view.setInitialProperties({{ "model", QVariant::fromValue(dataList) }});
 }
 void Client::onRedyRead(){
     qDebug()<<"readyRead";
-    qDebug()<< mTcpSocket->readAll();
+    messageModel.add(mTcpSocket->readAll());
 }
 void Client::onConnected(){
     qDebug()<<"onConnected";
@@ -31,13 +33,24 @@ void Client::setUserName(const QString &userName)
     m_userName = userName;
     emit userNameChanged();
 }
+
+DialogModel &Client::getModel()
+{
+    return messageModel;
+}
+
 void Client::newConnection()
 {
     mTcpSocket->connectToHost(QHostAddress::LocalHost, 6000);
 }
 
+void Client::disconnect()
+{
+    mTcpSocket->disconnectFromHost();
+}
+
 void Client::postMessage(const QString &msg)
 {
-   messageModel.add();
+   messageModel.add(msg);
 }
 

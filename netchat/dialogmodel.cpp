@@ -1,13 +1,10 @@
 #include "dialogmodel.h"
 
-dialogModel::dialogModel(QObject *parent)
+DialogModel::DialogModel(QObject *parent)
     :QAbstractListModel(parent)
-{
-    add();
-    add();
-}
+{}
 
-int dialogModel::rowCount(const QModelIndex& parent) const
+int DialogModel::rowCount(const QModelIndex& parent) const
 {   
     if (parent.isValid()) {
         return 0;
@@ -16,7 +13,7 @@ int dialogModel::rowCount(const QModelIndex& parent) const
     return _messages.size();
 }
 
-QVariant dialogModel::data(const QModelIndex &index, int role) const
+QVariant DialogModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
         return QVariant();
@@ -31,19 +28,19 @@ QVariant dialogModel::data(const QModelIndex &index, int role) const
   }
 }
 
-QHash<int, QByteArray> dialogModel::roleNames() const
+QHash<int, QByteArray> DialogModel::roleNames() const
 {
     QHash<int, QByteArray> roles = QAbstractListModel::roleNames();
     roles[ColorRole] = "color";
-    roles[TextRole] = "texts";
+    roles[TextRole] = "text";
 
     return roles;
 }
 
-void dialogModel::add()
+void DialogModel::add(const QString &msg)
 {
     beginInsertRows(QModelIndex(), _messages.size(), _messages.size());
-    _messages.append("new");
+    _messages.append(msg);
     endInsertRows();
 
     //_messages[0] = QString("Size: %1").arg(_messages.size());

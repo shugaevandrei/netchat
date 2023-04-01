@@ -17,10 +17,9 @@ Server::Server(QObject *parent) : QObject(parent)
 
 void Server::slotNewConnection()
 {
-    qDebug()<<"HELOOl";
     mTcpSocket = mTcpServer->nextPendingConnection();
 
-    mTcpSocket->write("Hello, World!!! I am echo server!\r\n");
+    mTcpSocket->write("connection is sucess");
 
     connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
     connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);

@@ -3,10 +3,9 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QQuickView>
 
 #include "dialogmodel.h"
-
-#include <qqml.h>
 
 class Client : public QObject
 {
@@ -14,19 +13,14 @@ class Client : public QObject
 public:
     Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
     Q_INVOKABLE void newConnection();
+    Q_INVOKABLE void disconnect();
     Q_INVOKABLE void postMessage(const QString &msg);
-    Q_PROPERTY(dialogModel model READ messageModel);
-    QML_ELEMENT
 
     explicit Client(QObject *parent = nullptr);
 
-
-    //explicit Client(QObject *parent = nullptr);
-
-
     QString userName();
-    //QAbstractListModel getModel(){return messageModel;};
     void setUserName(const QString &userName);
+    DialogModel& getModel();
 
 private slots:
     void onRedyRead();
@@ -35,8 +29,8 @@ private slots:
 signals:
     void userNameChanged();
 private:
+    DialogModel messageModel;
     QTcpSocket * mTcpSocket;
-    dialogModel messageModel;
     QString m_userName = "BOBA";
 };
 
