@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("client", &client);
     engine.rootContext()->setContextProperty("dialogModel", &client.getModel());
+    engine.rootContext()->setContextProperty("contactModel", &client.getContactModel());
 
     const QUrl url("qrc:/clientForm.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QAbstractListModel>
 #include <QObject>
 
@@ -10,13 +11,20 @@ public:
         ColorRole = Qt::UserRole + 1,
         TextRole
     };
+    struct Message {
+        Message(QString t, QColor c)
+            : text(t), color(c){}
+
+        QString text;
+        QColor color;
+    };
     DialogModel(QObject * parent = 0);
     int rowCount(const QModelIndex& parent) const;
     QVariant data(const QModelIndex &index, int role) const;
     virtual QHash<int, QByteArray> roleNames() const;
 
-    void add(const QString &msg);
-    QStringList getModel(){return _messages;}
+    void add(const QString &msg, const QColor &color);
+    QList<Message> getModel(){return _messages;}
 private:
-    QStringList _messages;
+    QList<Message> _messages;
 };

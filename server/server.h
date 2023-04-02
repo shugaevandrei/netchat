@@ -4,6 +4,9 @@
 #include <QString>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QHash>
 
 class Server : public QObject
 {
@@ -16,6 +19,12 @@ public slots:
     void slotClientDisconnected();
 
 private:
+    void sendMessageClient(QTcpSocket *sender, const QJsonObject jData);
     QTcpServer * mTcpServer;
-    QTcpSocket * mTcpSocket;
+
+    QSet<QTcpSocket *> mTcpSockets;
+    QByteArray data;
+    QHash<QString, quint16> clients;
+    QJsonObject json;
+    quint16 blockSize;
 };

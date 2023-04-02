@@ -20,9 +20,9 @@ QVariant DialogModel::data(const QModelIndex &index, int role) const
 
     switch (role) {
         case ColorRole:
-            return QVariant(index.row() < 2 ? "orange" : "skyblue");
+            return _messages.at(index.row()).color;
         case TextRole:
-            return _messages.at(index.row());
+            return _messages.at(index.row()).text;
         default:
             return QVariant();
   }
@@ -37,10 +37,10 @@ QHash<int, QByteArray> DialogModel::roleNames() const
     return roles;
 }
 
-void DialogModel::add(const QString &msg)
+void DialogModel::add(const QString &msg, const QColor &color)
 {
     beginInsertRows(QModelIndex(), _messages.size(), _messages.size());
-    _messages.append(msg);
+    _messages.append(Message(msg, color));
     endInsertRows();
 
     //_messages[0] = QString("Size: %1").arg(_messages.size());

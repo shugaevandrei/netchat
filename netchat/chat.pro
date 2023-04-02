@@ -1,15 +1,17 @@
-QT += network quick
+QT += network quick qml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++11
 
 SOURCES += \
         client.cpp \
+        contactmodel.cpp \
         dialogmodel.cpp \
         main.cpp
 
 HEADERS += \
     client.h \
+    contactmodel.h \
     dialogmodel.h
 
 # Default rules for deployment.

@@ -13,29 +13,77 @@ Server::Server(QObject *parent) : QObject(parent)
     } else {
         qDebug() << "server is started";
     }
+    blockSize = 0;
+
+    clients.insert("127.0.0.2",3);
+    clients.insert("127.0.0.3",2);
+    clients.insert("127.0.0.4",3);
 }
 
 void Server::slotNewConnection()
 {
-    mTcpSocket = mTcpServer->nextPendingConnection();
+    QTcpSocket  *mTcpSocket = mTcpServer->nextPendingConnection();
+    QJsonObject preambMessage;
 
-    mTcpSocket->write("connection is sucess");
+    if(!mTcpSockets.contains(mTcpSocket)){
 
-    connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
-    connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
+        preambMessage.insert("message", "msg");
+        preambMessage.insert("type", "send_clients");
+        sendMessageClient(mTcpSocket, preambMessage);
+
+        connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
+        connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
+        mTcpSockets.insert(mTcpSocket);
+        clients.insert(mTcpSocket->peerName(), mTcpSocket->peerPort());
+    }
 }
 
 void Server::slotServerRead()
 {
-    while(mTcpSocket->bytesAvailable()>0)
-    {
-        QByteArray array = mTcpSocket->readAll();
+    QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
+    QDataStream in(sender);
+    in.setVersion(QDataStream::Qt_6_4);
 
-        mTcpSocket->write(array);
+    if(in.status() ==QDataStream::Ok){
+        while(1){
+            if(blockSize == 0){
+                if(sender->bytesAvailable() < 2)
+                    break;
+                in >> blockSize;
+            }
+            if(sender->bytesAvailable() < blockSize)
+                break;
+
+            QJsonObject str;
+            QJsonValue val;
+
+            in >> str;
+            blockSize = 0;
+            sendMessageClient(sender, str);
+            break;
+        }
     }
 }
 
 void Server::slotClientDisconnected()
 {
-    mTcpSocket->close();
+    QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
+    sender->close();
+    sender->deleteLater();//?
+    mTcpSockets.remove(sender);
+}
+
+void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData)
+{
+    data.clear();
+
+    QDataStream out(&data, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_6_4);
+    if(jData.value("type").toString() == "send_clients")
+        out << quint16(0) << jData << clients;
+    else
+        out << quint16(0) << jData;
+    out.device()->seek(0);
+    out <<quint16(data.size() - sizeof(quint16));
+    sender->write(data);
 }
