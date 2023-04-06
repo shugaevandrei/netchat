@@ -43,3 +43,11 @@ void ContactModel::add(const QString &msg)
     _contact.append(msg);
     endInsertRows();
 }
+
+void ContactModel::clearAll()
+{
+    beginRemoveRows(QModelIndex() ,0, _contact.size());
+        removeRows(0, _contact.size());
+    endRemoveRows();
+    //_contact.clear();
+}

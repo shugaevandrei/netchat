@@ -59,7 +59,7 @@ Window {
                     text: "127.0.0.1"
                     validator: RegularExpressionValidator {
                         regularExpression:  /^((?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){0,3}(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$/
-                   }
+                    }
                 }
             }
 
@@ -81,7 +81,7 @@ Window {
                     horizontalAlignment: TextInput.AlignHCenter
                     validator: RegularExpressionValidator {
                         regularExpression:  /^((?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){0,3}(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$/
-                   }
+                    }
                     onAccepted: {
                         client.addContact(ipNewCont.text)
                     }
@@ -147,30 +147,28 @@ Window {
                     width: root.width * 0.6
                     height: 200
                     model: contactModel
-                    delegate: /*Rectangle {
-                        height: 20
+                    highlight: Rectangle {
                         width: frameContact.width
-                        color: "transparent"
-                        border.color: "black"
+                        color: "green"
+                    }
+                    delegate:
                         Label {
-                            text: model.text
-                            color: model.color
-                        }
-                    }*/
-
-                      Label {
-                          text: model.text
-                          color: model.color
-                          Rectangle {
+                        text: model.text
+                        color: model.color
+                        Rectangle {
                             height: 1
                             width: frameContact.width
                             anchors.bottom: parent.bottom
                             color: "black"
-                          }
-                      }
-
+                        }
+                        MouseArea{
+                            anchors.fill: parent
+                            onClicked: {
+                                contact.currentIndex = index
+                            }
+                        }
+                    }
                 }
-
             }
         }
 
@@ -185,9 +183,13 @@ Window {
             Layout.preferredWidth: 100
             text: "отправить"
             onClicked: {
-                client.postMessage(messageArea.text)
+                client.postMessage(messageArea.text, getDelegateInstanceAt(contact.currentIndex))
                 messageArea.clear()
             }
         }
+    }
+
+    function getDelegateInstanceAt(index) {
+        return contact.itemAtIndex(index).text
     }
 }

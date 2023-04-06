@@ -15,9 +15,19 @@ Server::Server(QObject *parent) : QObject(parent)
     }
     blockSize = 0;
 
-    clients.insert("127.0.0.2",3);
-    clients.insert("127.0.0.3",2);
-    clients.insert("127.0.0.4",3);
+
+//    QTcpSocket s1, s2, s3;
+//    s1.connectToHost("127.0.0.1", 6000);
+//    s2.connectToHost("127.0.0.1", 6000);
+//    s3.connectToHost("127.0.0.1", 6000);
+//    qDebug()<<s1.peerAddress().toString()<< s1.socketDescriptor();
+//    clients.insert(s1.peerAddress().toString(), s1.socketDescriptor());
+//    clients.insert(s2.peerAddress().toString(), s2.socketDescriptor());
+//    clients.insert(s3.peerAddress().toString(), s3.socketDescriptor());
+
+    clients.insert("2222",2323);
+    clients.insert("5455",275323);
+    clients.insert("6532",78);
 }
 
 void Server::slotNewConnection()
@@ -34,7 +44,7 @@ void Server::slotNewConnection()
         connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
         connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
         mTcpSockets.insert(mTcpSocket);
-        clients.insert(mTcpSocket->peerName(), mTcpSocket->peerPort());
+        clients.insert(mTcpSocket->peerAddress().toString(), mTcpSocket->socketDescriptor());
     }
 }
 
@@ -56,8 +66,10 @@ void Server::slotServerRead()
 
             QJsonObject str;
             QJsonValue val;
+            qintptr descReceiver = 0;
 
-            in >> str;
+            in >> str >> descReceiver;
+            qDebug()<<descReceiver;
             blockSize = 0;
             sendMessageClient(sender, str);
             break;
@@ -65,25 +77,47 @@ void Server::slotServerRead()
     }
 }
 
-void Server::slotClientDisconnected()
+void Server::slotClientDisconnected()//доработать
 {
     QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
+
+    qDebug()<<sender->peerAddress().toString();
+    qDebug()<<sender->socketDescriptor();
+
     sender->close();
     sender->deleteLater();//?
     mTcpSockets.remove(sender);
+
+    clients.remove(sender->peerAddress().toString());
+    qDebug()<<mTcpSockets.size();
 }
+
+//void Server::findReceiver(qintptr ptr)
+//{
+//    for(qintptr val: clients.values()){
+//        if(ptr == val)
+//            qDebug()<<"YYY"
+//           // return clients[val];
+
+//    }
+//    //return -1;
+//}
 
 void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData)
 {
     data.clear();
+    //findReceiver(jData.value("receiver"));
 
     QDataStream out(&data, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_6_4);
-    if(jData.value("type").toString() == "send_clients")
+    if(jData.value("type").toString() == "send_clients"){
         out << quint16(0) << jData << clients;
+        qDebug()<<"send_clients";
+    }
     else
         out << quint16(0) << jData;
     out.device()->seek(0);
     out <<quint16(data.size() - sizeof(quint16));
     sender->write(data);
+    qDebug()<<"DDDDDDD";
 }

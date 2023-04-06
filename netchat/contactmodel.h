@@ -17,6 +17,7 @@ public:
 
     void add(const QString &msg);
     QStringList getModel(){return _contact;}
+    void clearAll();
 private:
     QStringList _contact;
 };
