@@ -36,13 +36,16 @@ void Server::slotNewConnection()
     QJsonObject preambMessage;
 
     if(!mTcpSockets.contains(mTcpSocket)){
-
-        preambMessage.insert("message", "msg");
-        preambMessage.insert("type", "send_clients");
-        sendMessageClient(mTcpSocket, preambMessage);
-
         connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
         connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
+
+        //оповещаем о новом контакте других участников чата
+        preambMessage.insert("type", "send_clients");
+        for (auto sok: mTcpSockets){
+            sendMessageClient(sok, preambMessage);
+        }
+        sendMessageClient(mTcpSocket, preambMessage);
+
         mTcpSockets.insert(mTcpSocket);
         clients.insert(mTcpSocket->peerAddress().toString(), mTcpSocket->socketDescriptor());
     }
@@ -50,28 +53,38 @@ void Server::slotNewConnection()
 
 void Server::slotServerRead()
 {
+    qDebug()<<"slotServerRead";
     QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
     QDataStream in(sender);
     in.setVersion(QDataStream::Qt_6_4);
-
+    qDebug()<<"in.status()"<<in.status();
     if(in.status() ==QDataStream::Ok){
-        while(1){
-            if(blockSize == 0){
-                if(sender->bytesAvailable() < 2)
+        for(;;){
+            if(!blockSize){
+                qDebug()<<"2";
+                if(sender->bytesAvailable() < sizeof(quint16))
                     break;
                 in >> blockSize;
             }
-            if(sender->bytesAvailable() < blockSize)
-                break;
+            qDebug()<<"blockSize"<< blockSize;
+            qDebug()<<sender->bytesAvailable();
 
+            if(sender->bytesAvailable() < blockSize){
+                qDebug()<<"XNJ&";
+;                break;
+            }
+
+
+            qDebug()<<"4";
             QJsonObject str;
             QJsonValue val;
             qintptr descReceiver = 0;
-
+            qDebug()<<"123123132" <<descReceiver;
             in >> str >> descReceiver;
-            qDebug()<<descReceiver;
             blockSize = 0;
-            sendMessageClient(sender, str);
+            qDebug()<<"qintptr" <<descReceiver;
+
+            sendMessageClient(sender, str, descReceiver);
             break;
         }
     }
@@ -81,32 +94,24 @@ void Server::slotClientDisconnected()//доработать
 {
     QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
 
-    qDebug()<<sender->peerAddress().toString();
-    qDebug()<<sender->socketDescriptor();
-
     sender->close();
     sender->deleteLater();//?
     mTcpSockets.remove(sender);
 
     clients.remove(sender->peerAddress().toString());
-    qDebug()<<mTcpSockets.size();
+
+    QJsonObject preambMessage;
+    preambMessage.insert("type", "send_clients");
+    for (auto sok: mTcpSockets){
+        sendMessageClient(sok, preambMessage);
+    }
 }
 
-//void Server::findReceiver(qintptr ptr)
-//{
-//    for(qintptr val: clients.values()){
-//        if(ptr == val)
-//            qDebug()<<"YYY"
-//           // return clients[val];
-
-//    }
-//    //return -1;
-//}
-
-void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData)
+void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData ,qintptr receiverDesc)
 {
     data.clear();
-    //findReceiver(jData.value("receiver"));
+
+    QTcpSocket* receiver = getReceiverSok(receiverDesc);
 
     QDataStream out(&data, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_6_4);
@@ -118,6 +123,26 @@ void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData)
         out << quint16(0) << jData;
     out.device()->seek(0);
     out <<quint16(data.size() - sizeof(quint16));
-    sender->write(data);
-    qDebug()<<"DDDDDDD";
+
+
+    qDebug()<<"receiver"<<receiver<<"receiverDesc"<<receiverDesc;
+    if(receiver && receiverDesc){
+        receiver->write(data);
+        return;
+    }
+    else {
+        sender->write(data);
+        qDebug()<<"такого сокета нет!";
+    }
+    //sender->write(data);
+}
+
+QTcpSocket *Server::getReceiverSok(qintptr desc)
+{
+    for (auto sok: mTcpSockets){
+       if( sok->socketDescriptor() == desc){
+           return sok;
+       }
+    }
+    return nullptr;
 }

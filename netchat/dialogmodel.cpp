@@ -19,13 +19,13 @@ QVariant DialogModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     switch (role) {
-        case ColorRole:
-            return _messages.at(index.row()).color;
-        case TextRole:
-            return _messages.at(index.row()).text;
-        default:
-            return QVariant();
-  }
+    case ColorRole:
+        return _messages.at(index.row()).color;
+    case TextRole:
+        return _messages.at(index.row()).text;
+    default:
+        return QVariant();
+    }
 }
 
 QHash<int, QByteArray> DialogModel::roleNames() const

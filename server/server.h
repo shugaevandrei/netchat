@@ -17,15 +17,14 @@ public slots:
     void slotNewConnection();
     void slotServerRead();
     void slotClientDisconnected();
-   // void findReceiver(qintptr);
 
 private:
-    void sendMessageClient(QTcpSocket *sender, const QJsonObject jData);
+    void sendMessageClient(QTcpSocket *sender, const QJsonObject jData, qintptr receiverDesc = -1);
+    QTcpSocket* getReceiverSok(qintptr desc);
     QTcpServer * mTcpServer;
-
     QSet<QTcpSocket *> mTcpSockets;
     QByteArray data;
     QHash<QString, qintptr> clients;
     QJsonObject json;
-    quint16 blockSize;
+    quint16 blockSize = 0;
 };

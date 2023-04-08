@@ -1,5 +1,7 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+#pragma once
+
+#include "dialogmodel.h"
+#include "contactmodel.h"
 
 #include <QObject>
 #include <QTcpSocket>
@@ -8,9 +10,6 @@
 #include <QJsonObject>
 #include <QHash>
 #include <QColor>
-
-#include "dialogmodel.h"
-#include "contactmodel.h"
 
 enum class typeMessage{getClients, sendMessage};
 class Client : public QObject
@@ -30,7 +29,7 @@ public:
     DialogModel& getModel();
     ContactModel& getContactModel();
 
-    int getReceiver(const QString &name);
+    quintptr getReceiver(const QString &name);
 
 private slots:
     void onRedyRead();
@@ -44,8 +43,6 @@ private:
     QTcpSocket * mTcpSocket;
     QString m_userName = "BOBA";
     QByteArray data;
-    qint16 blockSize;
+    qint16 blockSize = 0;
     QHash<QString, qintptr> clients;
 };
-
-#endif // CLIENT_H

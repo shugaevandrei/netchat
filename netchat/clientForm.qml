@@ -189,6 +189,17 @@ Window {
         }
     }
 
+    Keys.onPressed: (event)=> {
+                    switch(event.key){
+                            case Qt.Key_Enter:
+                            case Qt.Key_Return: {
+                                client.postMessage(messageArea.text, getDelegateInstanceAt(contact.currentIndex))
+                                messageArea.clear()
+                            }
+                            break
+                    }
+    }
+
     function getDelegateInstanceAt(index) {
         return contact.itemAtIndex(index).text
     }

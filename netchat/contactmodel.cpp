@@ -46,8 +46,7 @@ void ContactModel::add(const QString &msg)
 
 void ContactModel::clearAll()
 {
-    beginRemoveRows(QModelIndex() ,0, _contact.size());
-        removeRows(0, _contact.size());
-    endRemoveRows();
-    //_contact.clear();
+    beginResetModel();
+    _contact.clear();
+    endResetModel();
 }
