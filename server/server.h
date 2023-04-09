@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QHash>
+#include <QPair>
 
 class Server : public QObject
 {

@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>clientForm.qml</file>
+        <file>client.qml</file>
+        <file>indicator.png</file>
     </qresource>
 </RCC>

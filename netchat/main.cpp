@@ -3,12 +3,14 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickView>
+#include <QQuickStyle>
 #include "client.h"
 #include "dialogmodel.h"
 
 int main(int argc, char *argv[])
 {
     qputenv("QT_QUICK_BACKEND","software");
+    QQuickStyle::setStyle("Windows");
 
     QGuiApplication a(argc, argv);
     QQmlApplicationEngine engine;
@@ -19,7 +21,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("dialogModel", &client.getModel());
     engine.rootContext()->setContextProperty("contactModel", &client.getContactModel());
 
-    const QUrl url("qrc:/clientForm.qml");
+    const QUrl url("qrc:/client.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &a, [url](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl)

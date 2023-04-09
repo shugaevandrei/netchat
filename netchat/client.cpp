@@ -50,17 +50,26 @@ void Client::onRedyRead(){
 
 void Client::onConnected()
 {
+    connect_ = true;
+    emit isConnectChanged();
     qDebug()<<"onConnected";
 }
 
 void Client::onDisconnected()
 {
+    connect_ = false;
+    emit isConnectChanged();
     qDebug()<<"onDisconnected";
 }
 
 QString Client::userName()
 {
     return m_userName;
+}
+
+bool Client::isConnect()
+{
+    return connect_;
 }
 
 void Client::setUserName(const QString &userName)

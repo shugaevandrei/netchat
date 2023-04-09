@@ -17,6 +17,7 @@ class Client : public QObject
     Q_OBJECT
 public:
     Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)//пример
+    Q_PROPERTY(bool isConnect READ isConnect NOTIFY isConnectChanged)
     Q_INVOKABLE void newConnection(const QString &ip, const quint16 &port);
     Q_INVOKABLE void disconnect();
     Q_INVOKABLE void postMessage(const QString &msg, const QString &receiver, const QString &type = "sendMessage");
@@ -25,6 +26,7 @@ public:
     explicit Client(QObject *parent = nullptr);
 
     QString userName();
+    bool isConnect();
     void setUserName(const QString &userName);
     DialogModel& getModel();
     ContactModel& getContactModel();
@@ -37,10 +39,12 @@ private slots:
     void onDisconnected();
 signals:
     void userNameChanged();
+    void isConnectChanged();
 private:
     DialogModel messageModel;
     ContactModel contactModel;
     QTcpSocket * mTcpSocket;
+    bool connect_ = false;
     QString m_userName = "BOBA";
     QByteArray data;
     qint16 blockSize = 0;

@@ -15,16 +15,6 @@ Server::Server(QObject *parent) : QObject(parent)
     }
     blockSize = 0;
 
-
-//    QTcpSocket s1, s2, s3;
-//    s1.connectToHost("127.0.0.1", 6000);
-//    s2.connectToHost("127.0.0.1", 6000);
-//    s3.connectToHost("127.0.0.1", 6000);
-//    qDebug()<<s1.peerAddress().toString()<< s1.socketDescriptor();
-//    clients.insert(s1.peerAddress().toString(), s1.socketDescriptor());
-//    clients.insert(s2.peerAddress().toString(), s2.socketDescriptor());
-//    clients.insert(s3.peerAddress().toString(), s3.socketDescriptor());
-
     clients.insert("2222",2323);
     clients.insert("5455",275323);
     clients.insert("6532",78);
@@ -39,15 +29,16 @@ void Server::slotNewConnection()
         connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
         connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
 
-        //оповещаем о новом контакте других участников чата
-        preambMessage.insert("type", "send_clients");
-        for (auto sok: mTcpSockets){
-            sendMessageClient(sok, preambMessage);
-        }
-        sendMessageClient(mTcpSocket, preambMessage);
+
+
 
         mTcpSockets.insert(mTcpSocket);
         clients.insert(mTcpSocket->peerAddress().toString(), mTcpSocket->socketDescriptor());
+
+         preambMessage.insert("type", "send_clients");
+        for (auto sok: mTcpSockets){
+            sendMessageClient(sok, preambMessage);
+        }
     }
 }
 
@@ -57,7 +48,6 @@ void Server::slotServerRead()
     QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
     QDataStream in(sender);
     in.setVersion(QDataStream::Qt_6_4);
-    qDebug()<<"in.status()"<<in.status();
     if(in.status() ==QDataStream::Ok){
         for(;;){
             if(!blockSize){
@@ -66,23 +56,19 @@ void Server::slotServerRead()
                     break;
                 in >> blockSize;
             }
-            qDebug()<<"blockSize"<< blockSize;
-            qDebug()<<sender->bytesAvailable();
 
-            if(sender->bytesAvailable() < blockSize){
-                qDebug()<<"XNJ&";
-;                break;
-            }
+            if(sender->bytesAvailable() < blockSize)
+                break;
 
 
-            qDebug()<<"4";
+
+
             QJsonObject str;
             QJsonValue val;
             qintptr descReceiver = 0;
-            qDebug()<<"123123132" <<descReceiver;
+
             in >> str >> descReceiver;
             blockSize = 0;
-            qDebug()<<"qintptr" <<descReceiver;
 
             sendMessageClient(sender, str, descReceiver);
             break;
@@ -112,11 +98,18 @@ void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData ,qint
     data.clear();
 
     QTcpSocket* receiver = getReceiverSok(receiverDesc);
+    QHash<QString, qintptr> uniqClients;
 
     QDataStream out(&data, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_6_4);
     if(jData.value("type").toString() == "send_clients"){
-        out << quint16(0) << jData << clients;
+
+        QHash<QString, qintptr>::iterator it;
+        for(it = clients.begin(); it != clients.end(); ++it){
+            if (sender->socketDescriptor() != it.value())
+                uniqClients.insert(it.key(), it.value());
+        }
+        out << quint16(0) << jData << uniqClients;
         qDebug()<<"send_clients";
     }
     else
@@ -124,8 +117,6 @@ void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData ,qint
     out.device()->seek(0);
     out <<quint16(data.size() - sizeof(quint16));
 
-
-    qDebug()<<"receiver"<<receiver<<"receiverDesc"<<receiverDesc;
     if(receiver && receiverDesc){
         receiver->write(data);
         return;
@@ -134,7 +125,6 @@ void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData ,qint
         sender->write(data);
         qDebug()<<"такого сокета нет!";
     }
-    //sender->write(data);
 }
 
 QTcpSocket *Server::getReceiverSok(qintptr desc)
