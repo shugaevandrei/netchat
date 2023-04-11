@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>client.qml</file>
         <file>indicator.png</file>
+        <file>params.json</file>
     </qresource>
 </RCC>

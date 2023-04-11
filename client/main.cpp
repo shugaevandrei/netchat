@@ -10,6 +10,7 @@
 int main(int argc, char *argv[])
 {
     qputenv("QT_QUICK_BACKEND","software");
+    qputenv("QML_XHR_ALLOW_FILE_READ", QByteArray("1"));
     QQuickStyle::setStyle("Windows");
 
     QGuiApplication a(argc, argv);
