@@ -8,7 +8,14 @@ Client::Client(QObject *parent)
     connect(mTcpSocket, &QAbstractSocket::connected,this ,&Client::onConnected);
     connect(mTcpSocket, &QAbstractSocket::disconnected,this ,&Client::onDisconnected);
     blockSize = 0;
+    readDialogs();
 }
+
+Client::~Client()
+{
+    saveDialogs();
+}
+
 void Client::onRedyRead(){
     qDebug()<<"readyRead";
 
@@ -24,8 +31,6 @@ void Client::onRedyRead(){
             }
             if(mTcpSocket->bytesAvailable() < blockSize)
                 break;
-
-
 
             QJsonObject jMessage;
             in >> jMessage;
@@ -62,23 +67,9 @@ void Client::onDisconnected()
     qDebug()<<"onDisconnected";
 }
 
-QString Client::userName()
-{
-    return m_userName;
-}
-
 bool Client::isConnect()
 {
     return connect_;
-}
-
-void Client::setUserName(const QString &userName)
-{
-    if (userName == m_userName)
-        return;
-
-    m_userName = userName;
-    emit userNameChanged();
 }
 
 DialogModel &Client::getModel()
@@ -89,6 +80,28 @@ DialogModel &Client::getModel()
 ContactModel &Client::getContactModel()
 {
     return contactModel;
+}
+
+void Client::saveDialogs()
+{
+    QFile out("dialogs.bin");
+    if( out.open( QIODevice::WriteOnly )) {
+        QDataStream stream( &out );
+        stream << messageModel.getModel();
+        out.close();
+    }
+}
+
+void Client::readDialogs()
+{
+    QFile in("dialogs.bin");
+    if( in.open( QIODevice::ReadOnly )) {
+        QHash<QString, QList<Message>> model;
+        QDataStream stream( &in );
+        stream >> model;
+        messageModel.setModel(model);
+        in.close();
+    }
 }
 
 quintptr Client::getReceiver(const QString &name)
@@ -144,3 +157,7 @@ void Client::addContact(const QString &cont)
     contactModel.add(cont);
 }
 
+void Client::setCurReceiver(const QString &interlocutor)
+{
+    messageModel.setCurrentModel(interlocutor);
+}

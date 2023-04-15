@@ -3,6 +3,18 @@
 #include <QColor>
 #include <QAbstractListModel>
 #include <QObject>
+#include <QDataStream>
+
+struct Message {
+    Message(QString t, QColor c);
+    Message();
+
+    QString text;
+    QColor color;
+
+    friend QDataStream& operator << (QDataStream &out, const Message& mess);
+    friend QDataStream& operator >> (QDataStream &out, Message& mess);
+};
 
 class DialogModel: public QAbstractListModel
 {
@@ -11,20 +23,20 @@ public:
         ColorRole = Qt::UserRole + 1,
         TextRole
     };
-    struct Message {
-        Message(QString t, QColor c)
-            : text(t), color(c){}
-
-        QString text;
-        QColor color;
-    };
     DialogModel(QObject * parent = 0);
     int rowCount(const QModelIndex& parent) const;
     QVariant data(const QModelIndex &index, int role) const;
     virtual QHash<int, QByteArray> roleNames() const;
 
     void add(const QString &msg, const QColor &color);
-    QList<Message> getModel(){return _messages;}
+    void setCurrentModel(const QString &interlocutor);
+    QHash<QString, QList<Message>> getModel();
+    void setModel(QHash<QString, QList<Message>> model);;
+    void clearAll();
+
 private:
+    QHash<QString, QList<Message>> _allMessages;
     QList<Message> _messages;
+    QString interlocutor_ ;
 };
+

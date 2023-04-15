@@ -63,6 +63,7 @@ ApplicationWindow {
                 ListView {
                     id: contact
                     model: contactModel
+                    currentIndex: -1
                     highlight: Rectangle {
                         width: contact.width
                         color: "white"
@@ -75,8 +76,9 @@ ApplicationWindow {
                         color: model.color
                         MouseArea{
                             anchors.fill: parent
-                            onClicked: {
+                            onClicked: {   
                                 contact.currentIndex = index
+                                client.setCurReceiver(getDelegateInstanceAt(index))
                             }
                         }
                     }
@@ -147,7 +149,6 @@ ApplicationWindow {
                                                 client.postMessage(messageArea.text, getDelegateInstanceAt(contact.currentIndex))
                                                 messageArea.clear()
                                                 event.accepted = true;
-                                                console.log("PRESS")
                                             }
                                             break
                                         }

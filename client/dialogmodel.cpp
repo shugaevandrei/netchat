@@ -9,7 +9,6 @@ int DialogModel::rowCount(const QModelIndex& parent) const
     if (parent.isValid()) {
         return 0;
     }
-
     return _messages.size();
 }
 
@@ -47,3 +46,64 @@ void DialogModel::add(const QString &msg, const QColor &color)
     //QModelIndex index = createIndex(0, 0, static_cast<void *>(0));
     //emit dataChanged(index, index);
 }
+
+void DialogModel::setCurrentModel(const QString &interlocutor)
+{
+    if(!_messages.isEmpty())
+        _allMessages.insert(interlocutor_, _messages);
+
+    clearAll();
+    interlocutor_ = interlocutor;
+
+    for(int i = 0; i < _allMessages.value(interlocutor_).length(); i++) {
+        beginInsertRows(QModelIndex(), i, i);
+        _messages.append(_allMessages.value(interlocutor_)[i]);
+        endInsertRows();
+    }
+
+
+    //     for(int i = 0; i < _messages.length(); i++){
+    //         пример для редактирования данных
+    //         emit dataChanged(index(i, 0), index(i, 0));
+    //     }
+}
+
+QHash<QString, QList<Message> > DialogModel::getModel()
+{
+    return _allMessages;
+}
+
+void DialogModel::setModel(QHash<QString, QList<Message> > model)
+{
+    _allMessages = model;
+}
+
+void DialogModel::clearAll()
+{
+    beginResetModel();
+    _messages.clear();
+    endResetModel();
+}
+
+Message::Message(QString t, QColor c)
+{
+    text = t;
+    color= c;
+}
+
+Message::Message()
+{}
+
+QDataStream& operator << (QDataStream &out, const Message& mess)
+{
+    out << mess.text;
+    out << mess.color;
+    return out;
+};
+
+QDataStream& operator >> (QDataStream &out, Message& mess)
+{
+    out >> mess.text;
+    out >> mess.color;
+    return out;
+};
