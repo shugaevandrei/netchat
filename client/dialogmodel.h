@@ -6,6 +6,7 @@
 #include <QDataStream>
 
 struct Message {
+
     Message(QString t, QColor c);
     Message();
 
@@ -24,14 +25,16 @@ public:
         TextRole
     };
     DialogModel(QObject * parent = 0);
+
     int rowCount(const QModelIndex& parent) const;
     QVariant data(const QModelIndex &index, int role) const;
     virtual QHash<int, QByteArray> roleNames() const;
 
     void add(const QString &msg, const QColor &color);
-    void setCurrentModel(const QString &interlocutor);
+    void setModel(const QString &interlocutor);
+    void saveCurrentModel();
     QHash<QString, QList<Message>> getModel();
-    void setModel(QHash<QString, QList<Message>> model);;
+    void setModel(QHash<QString, QList<Message>> model);
     void clearAll();
 
 private:

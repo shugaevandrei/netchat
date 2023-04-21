@@ -2,6 +2,7 @@
 
 #include "dialogmodel.h"
 #include "contactmodel.h"
+#include "proxyfiltermodel.h"
 
 #include <QObject>
 #include <QTcpSocket>
@@ -12,6 +13,7 @@
 #include <QColor>
 #include <QDataStream>
 #include <QFile>
+#include <QDateTime>
 
 class Client : public QObject
 {
@@ -23,16 +25,16 @@ public:
     Q_INVOKABLE void postMessage(const QString &msg, const QString &receiver, const QString &type = "sendMessage");
     Q_INVOKABLE void addContact(const QString &cont);
     Q_INVOKABLE void setCurReceiver(const QString &interlocutor);
+    Q_INVOKABLE void applyFilter (const QString &key);
 
     explicit Client(QObject *parent = nullptr);
     ~Client();
 
     bool isConnect();
-    DialogModel& getModel();
+    QScopedPointer<ProxyFilterModel> &getModel();
     ContactModel& getContactModel();
     void saveDialogs();
     void readDialogs();
-
     quintptr getReceiver(const QString &name);
 
 private slots:
@@ -46,6 +48,7 @@ signals:
 private:
     DialogModel messageModel;
     ContactModel contactModel;
+    QScopedPointer<ProxyFilterModel> filterModel;
     QTcpSocket * mTcpSocket;
     bool connect_ = false;
     QByteArray data;

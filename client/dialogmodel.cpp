@@ -9,6 +9,7 @@ int DialogModel::rowCount(const QModelIndex& parent) const
     if (parent.isValid()) {
         return 0;
     }
+
     return _messages.size();
 }
 
@@ -47,11 +48,9 @@ void DialogModel::add(const QString &msg, const QColor &color)
     //emit dataChanged(index, index);
 }
 
-void DialogModel::setCurrentModel(const QString &interlocutor)
+void DialogModel::setModel(const QString &interlocutor)
 {
-    if(!_messages.isEmpty())
-        _allMessages.insert(interlocutor_, _messages);
-
+    saveCurrentModel();
     clearAll();
     interlocutor_ = interlocutor;
 
@@ -60,12 +59,12 @@ void DialogModel::setCurrentModel(const QString &interlocutor)
         _messages.append(_allMessages.value(interlocutor_)[i]);
         endInsertRows();
     }
+}
 
-
-    //     for(int i = 0; i < _messages.length(); i++){
-    //         пример для редактирования данных
-    //         emit dataChanged(index(i, 0), index(i, 0));
-    //     }
+void DialogModel::saveCurrentModel()
+{
+    if(!_messages.isEmpty())
+        _allMessages.insert(interlocutor_, _messages);
 }
 
 QHash<QString, QList<Message> > DialogModel::getModel()

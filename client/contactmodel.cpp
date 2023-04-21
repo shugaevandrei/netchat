@@ -19,13 +19,13 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     switch (role) {
-        case ColorRole:
-            return QVariant(index.row() < 2 ? "black" : "gray");
-        case TextRole:
-            return _contact.at(index.row());
-        default:
-            return QVariant();
-  }
+    case ColorRole:
+        return QVariant(index.row() < 2 ? "black" : "gray");
+    case TextRole:
+        return _contact.at(index.row());
+    default:
+        return QVariant();
+    }
 }
 
 QHash<int, QByteArray> ContactModel::roleNames() const

@@ -2,13 +2,21 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
+//import QtQuick.Controls.Material 2.0
 
 ApplicationWindow {
     id: root
     width: 400
     height: 380
     visible: true
-    title: qsTr("chat")
+    background: Rectangle{
+        color: "#fcd03c"
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: "#fcd03c" }
+            GradientStop { position: 1.0; color: "#5d9333" }
+        }
+    }
+    title: qsTr("Corn")
 
     menuBar: MenuBar {
         Menu {
@@ -16,7 +24,14 @@ ApplicationWindow {
 
             MenuItem {
                 text: !client.isConnect ? qsTr("Подключиться") :qsTr("Отключиться")
-                onTriggered: !client.isConnect ? client.newConnection(ip.text, port.text) : client.disconnect()
+                onTriggered: {
+                    if (!client.isConnect)
+                        client.newConnection(ip.text, port.text)
+                    else {
+                        client.setCurReceiver(-1)
+                        client.disconnect()
+                    }
+                }
             }
 
             MenuItem {
@@ -42,138 +57,231 @@ ApplicationWindow {
         }
     }
 
-    ColumnLayout {
+    Loader {
+        id: loader
         anchors.fill: parent
+        sourceComponent: identFowrm
+    }
 
-        RowLayout {
-            Layout.topMargin: 6
-            spacing: 6
+    Component  {
+        id: identFowrm
 
-            ScrollView {
-                Layout.fillWidth: true
+        ColumnLayout {
+
+            Item {
                 Layout.fillHeight: true
-                Layout.leftMargin: 6
-                Layout.minimumWidth: 50
-                Layout.preferredWidth: 100
-                Layout.minimumHeight: 50
-                Layout.preferredHeight: 200
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                ScrollBar.vertical.interactive: true
+            }
 
-                ListView {
-                    id: contact
-                    model: contactModel
-                    currentIndex: -1
-                    highlight: Rectangle {
-                        width: contact.width
-                        color: "white"
+            Rectangle {
+                width: login.width
+                height:  login.height
+                Layout.alignment: Qt.AlignCenter
+                color: "white"
+                radius: 3
+
+                TextInput {
+                    id: login
+                    width:  120
+                    height: 20
+                    maximumLength: 18
+                    Layout.preferredWidth: 100
+                    verticalAlignment: TextInput.AlignVCenter
+                    horizontalAlignment: TextInput.AlignHCenter
+                }
+            }
+
+            Rectangle {
+                width: password.width
+                height:  password.height
+                Layout.alignment: Qt.AlignCenter
+                color: "white"
+                radius: 3
+
+                TextInput {
+                    id: password
+                    width:  120
+                    height: 20
+                    maximumLength: 18
+                    verticalAlignment: TextInput.AlignVCenter
+                    horizontalAlignment: TextInput.AlignHCenter
+                }
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignCenter
+
+                Button {
+                    Layout.preferredWidth: 60
+                    text: "Войти"
+                    onClicked: {
+                        loader.sourceComponent = mainForm
                     }
-                    delegate:
-                        Label {
-                        text: model.text
-                        width: contact.width
-                        font.pixelSize: 14
-                        color: model.color
-                        MouseArea{
-                            anchors.fill: parent
-                            onClicked: {   
-                                contact.currentIndex = index
-                                client.setCurReceiver(getDelegateInstanceAt(index))
+                }
+
+                Button {
+                    Layout.preferredWidth: 60
+                    text: "Регистрация"
+                    onClicked: {
+                        loader.sourceComponent = mainForm
+                    }
+                }
+
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+        }
+    }
+
+    Component  {
+        id: mainForm
+        ColumnLayout {
+            RowLayout {
+                Layout.topMargin: 6
+                spacing: 6
+
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.leftMargin: 6
+                    Layout.minimumWidth: 50
+                    Layout.preferredWidth: 100
+                    Layout.minimumHeight: 50
+                    Layout.preferredHeight: 200
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical.interactive: true
+
+                    ListView {
+                        id: contact
+                        model: contactModel
+                        currentIndex: -1
+                        highlight: Rectangle {
+                            width: contact.width
+                            color: "white"
+                        }
+                        delegate:
+                            Label {
+                            text: model.text
+                            width: contact.width
+                            font.pixelSize: 14
+                            color: model.color
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    contact.currentIndex = index
+                                    client.setCurReceiver(getDelegateInstanceAt(contact, index))
+                                }
                             }
+                        }
+
+                        Rectangle {
+                            z: -1
+                            anchors.fill: parent
+                            color: "#f0f0f0"
+                        }
+                    }
+                }
+
+                ScrollView {
+                    Layout.rightMargin: 6
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumWidth: 100
+                    Layout.preferredWidth: 270
+                    Layout.minimumHeight: 50
+                    Layout.preferredHeight: 200
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical.interactive: true
+                    clip: true
+
+                    ListView {
+                        id: dialog
+                        property bool filter: true
+                        model: dialogModel
+                        delegate: Label {
+                            text: model.text
+                            color: model.color
+                        }
+                        header: TextEdit {
+                            height: 20
+                            width: dialog.width
+
+                            onTextChanged: {
+                                if (dialog.filter)
+                                    client.applyFilter(text)
+                            }
+
+                            Rectangle{
+                                z: -1
+                                anchors.fill: parent
+                                color: "white"
+                            }
+                        }
+                        Rectangle{
+                            z: -1
+                            anchors.fill: parent
+                            color: "#f0f0f0"
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.bottomMargin:  6
+                spacing: 6
+
+                ScrollView {
+                    Layout.leftMargin: 6
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumWidth: 100
+                    Layout.preferredWidth: 270
+                    Layout.minimumHeight: 50
+                    Layout.preferredHeight: 100
+
+                    TextArea {
+                        id: messageArea
+                        placeholderText: "введите сообщение..."
+                        wrapMode: TextEdit.WordWrap
+                        Component.onCompleted: {
+                            messageArea.forceActiveFocus()
+                        }
+                        Keys.onPressed: (event)=> {
+                                            switch(event.key){
+                                                case Qt.Key_Enter:
+                                                case Qt.Key_Return: {
+                                                    client.postMessage(messageArea.text, getDelegateInstanceAt(contact, contact.currentIndex))
+                                                    messageArea.clear()
+                                                    event.accepted = true;
+                                                }
+                                                break
+                                            }
+                                        }
+                    }
+
+                }
+
+                ColumnLayout {
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        Layout.preferredWidth: 100
+                        enabled: messageArea.text.length && (contact.currentIndex >= 0)
+                        text: "отправить"
+                        onClicked: {
+                            client.postMessage(messageArea.text, getDelegateInstanceAt(contact, contact.currentIndex))
+                            messageArea.clear()
                         }
                     }
 
-                    Rectangle{
-                        z: -1
-                        anchors.fill: parent
-                        color: "black"
-                        opacity: 0.1
-                    }
-                }
-            }
-
-            ScrollView {
-                Layout.rightMargin: 6
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumWidth: 100
-                Layout.preferredWidth: 270
-                Layout.minimumHeight: 50
-                Layout.preferredHeight: 200
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                ScrollBar.vertical.interactive: true
-                clip: true
-
-                ListView {
-                    id: dialog
-                    model: dialogModel
-                    delegate: Label {
-                        text: model.text
-                        color: model.color
-                    }
-
-                    Rectangle{
-                        z: -1
-                        anchors.fill: parent
-                        color: "black"
-                        opacity: 0.1
-                    }
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.bottomMargin:  6
-            spacing: 6
-
-            ScrollView {
-                Layout.leftMargin: 6
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumWidth: 100
-                Layout.preferredWidth: 270
-                Layout.minimumHeight: 50
-                Layout.preferredHeight: 100
-
-                TextArea {
-                    id: messageArea
-                    placeholderText: "введите сообщение..."
-                    wrapMode: TextEdit.WordWrap
-                    Component.onCompleted: {
-                        messageArea.forceActiveFocus()
-                    }
-                    Keys.onPressed: (event)=> {
-                                        switch(event.key){
-                                            case Qt.Key_Enter:
-                                            case Qt.Key_Return: {
-                                                client.postMessage(messageArea.text, getDelegateInstanceAt(contact.currentIndex))
-                                                messageArea.clear()
-                                                event.accepted = true;
-                                            }
-                                            break
-                                        }
-                                    }
-                }
-
-            }
-            ColumnLayout {
-                Button {
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: 100
-                    enabled: messageArea.text.length && (contact.currentIndex >= 0)
-                    text: "отправить"
-                    onClicked: {
-                        client.postMessage(messageArea.text, getDelegateInstanceAt(contact.currentIndex))
-                        messageArea.clear()
-                    }
-                }
-                Button {
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: 100
-                    enabled: messageArea.text.length
-                    text: "отменить"
-                    onClicked: {
-                        messageArea.clear()
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        Layout.preferredWidth: 100
+                        enabled: messageArea.text.length
+                        text: "отменить"
+                        onClicked: {
+                            messageArea.clear()
+                        }
                     }
                 }
             }
@@ -316,7 +424,7 @@ ApplicationWindow {
         xhr.open("GET", path)
         xhr.send()
     }
-    function getDelegateInstanceAt(index) {
-        return contact.itemAtIndex(index).text
+    function getDelegateInstanceAt(source, index) {
+        return source.itemAtIndex(index).text
     }
 }

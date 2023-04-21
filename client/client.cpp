@@ -1,13 +1,15 @@
 #include "client.h"
 
 Client::Client(QObject *parent)
-    : QObject{parent}
+    : QObject{parent},
+     filterModel(new ProxyFilterModel)
 {
     mTcpSocket = new QTcpSocket(this);
     connect(mTcpSocket, &QAbstractSocket::readyRead,this ,&Client::onRedyRead);
     connect(mTcpSocket, &QAbstractSocket::connected,this ,&Client::onConnected);
     connect(mTcpSocket, &QAbstractSocket::disconnected,this ,&Client::onDisconnected);
     blockSize = 0;
+    filterModel->setSourceModel(&messageModel);
     readDialogs();
 }
 
@@ -72,11 +74,6 @@ bool Client::isConnect()
     return connect_;
 }
 
-DialogModel &Client::getModel()
-{
-    return messageModel;
-}
-
 ContactModel &Client::getContactModel()
 {
     return contactModel;
@@ -84,6 +81,8 @@ ContactModel &Client::getContactModel()
 
 void Client::saveDialogs()
 {
+    messageModel.saveCurrentModel();
+
     QFile out("dialogs.bin");
     if( out.open( QIODevice::WriteOnly )) {
         QDataStream stream( &out );
@@ -107,9 +106,8 @@ void Client::readDialogs()
 quintptr Client::getReceiver(const QString &name)
 {
     for(auto val: clients.keys()){
-        if(name == val){
+        if(name == val)
             return clients[val];
-        }
     }
     return -1;
 }
@@ -128,10 +126,11 @@ void Client::disconnect()
 void Client::postMessage(const QString &msg, const QString &receiver ,const QString &type)
 {
     QJsonObject jMessage;
+    QString addMess = QDateTime::currentDateTime().toString("[dd.MM hh:mm:ss] ") + msg;
     data.clear();
 
     jMessage.insert("type", type);
-    jMessage.insert("message", msg);
+    jMessage.insert("message", addMess);
 
     QDataStream out(&data, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_6_4);
@@ -149,7 +148,7 @@ void Client::postMessage(const QString &msg, const QString &receiver ,const QStr
     out.device()->seek(0);
     out <<quint16(data.size() - sizeof(quint16));
     mTcpSocket->write(data);
-    messageModel.add(msg, "blue");
+    messageModel.add(addMess, "blue");
 }
 
 void Client::addContact(const QString &cont)
@@ -159,5 +158,16 @@ void Client::addContact(const QString &cont)
 
 void Client::setCurReceiver(const QString &interlocutor)
 {
-    messageModel.setCurrentModel(interlocutor);
+    messageModel.setModel(interlocutor);
+}
+
+void Client::applyFilter(const QString &key)
+{
+    filterModel->setFilterKind(ProxyFilterModel::Filter::searchMessage);
+    filterModel->updateFilter(key);
+}
+
+QScopedPointer<ProxyFilterModel> &Client::getModel()
+{
+    return filterModel;
 }

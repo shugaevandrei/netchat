@@ -1,4 +1,5 @@
 QT += network quick qml quickcontrols2
+RC_ICONS = corn.ico
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++11
@@ -7,12 +8,14 @@ SOURCES += \
         client.cpp \
         contactmodel.cpp \
         dialogmodel.cpp \
-        main.cpp
+        main.cpp \
+        proxyfiltermodel.cpp
 
 HEADERS += \
     client.h \
     contactmodel.h \
-    dialogmodel.h
+    dialogmodel.h \
+    proxyfiltermodel.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

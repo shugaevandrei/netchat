@@ -5,7 +5,6 @@
 #include <QQuickView>
 #include <QQuickStyle>
 #include "client.h"
-#include "dialogmodel.h"
 
 int main(int argc, char *argv[])
 {
@@ -19,7 +18,7 @@ int main(int argc, char *argv[])
     Client client;
 
     engine.rootContext()->setContextProperty("client", &client);
-    engine.rootContext()->setContextProperty("dialogModel", &client.getModel());
+    engine.rootContext()->setContextProperty("dialogModel", &*client.getModel());
     engine.rootContext()->setContextProperty("contactModel", &client.getContactModel());
 
     const QUrl url("qrc:/client.qml");

@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>client.qml</file>
-        <file>indicator.png</file>
         <file>params.json</file>
+        <file>backCorn.png</file>
     </qresource>
 </RCC>
