@@ -17,6 +17,11 @@ int main(int argc, char *argv[])
 
     Client client;
 
+    qmlRegisterUncreatableMetaObject(
+                FilterTypes::staticMetaObject,
+                "FiltersTypes", 1, 0, "FilterTypes",
+                "Access to enums & flags only");
+
     engine.rootContext()->setContextProperty("client", &client);
     engine.rootContext()->setContextProperty("dialogModel", &*client.getModel());
     engine.rootContext()->setContextProperty("contactModel", &client.getContactModel());

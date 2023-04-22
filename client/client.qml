@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import FiltersTypes 1.0
 //import QtQuick.Controls.Material 2.0
 
 ApplicationWindow {
@@ -183,7 +184,8 @@ ApplicationWindow {
                     }
                 }
 
-                ScrollView {
+                Column {
+                    id: manageDialog
                     Layout.rightMargin: 6
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -191,37 +193,97 @@ ApplicationWindow {
                     Layout.preferredWidth: 270
                     Layout.minimumHeight: 50
                     Layout.preferredHeight: 200
-                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                    ScrollBar.vertical.interactive: true
-                    clip: true
 
-                    ListView {
-                        id: dialog
-                        property bool filter: true
-                        model: dialogModel
-                        delegate: Label {
-                            text: model.text
-                            color: model.color
-                        }
-                        header: TextEdit {
-                            height: 20
-                            width: dialog.width
+                    Row {
+                        id: searchForm
+                        width: manageDialog.width
+                        height: 0
+                        spacing: 6
 
+                        TextInput {
+                            id: textinpuSearch
+                            width: manageDialog.width - cancelBtn.width - parent.spacing
+                            height: searchForm.height
+                            verticalAlignment: TextInput.AlignVCenter
+                            horizontalAlignment: TextInput.AlignHCenter
                             onTextChanged: {
-                                if (dialog.filter)
-                                    client.applyFilter(text)
+                                client.applyFilter(FilterTypes.SearchMessage, text)
+                            }
+
+                            Rectangle {
+                                anchors.fill: parent
+                                z: -1
+                                color: "#f0f0f0"
+                            }
+                        }
+
+                        RoundButton {
+                            id: cancelBtn
+                            height: searchForm.height
+                            width: height
+                            text: "\u274C"
+                            onClicked: {
+                                searchForm.height = 0
+                                searchForm.focus = false
+                                textinpuSearch.clear()
+                                client.applyFilter(FilterTypes.NoneFiler)
+                            }
+                        }
+                    }
+
+                    Item {
+                        id: bottomPadding
+                        width: manageDialog.width
+                        height: searchForm.height ? 6 : 0
+                    }
+
+                    ScrollView {
+                        id: viewForm
+                        width: manageDialog.width
+                        height: manageDialog.height - searchForm.height - bottomPadding.height
+                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                        ScrollBar.vertical.interactive: true
+                        clip: true
+
+                        ListView {
+                            id: dialog
+                            model: dialogModel
+                            delegate: Label {
+                                text: model.text
+                                color: model.color
                             }
 
                             Rectangle{
                                 z: -1
                                 anchors.fill: parent
-                                color: "white"
+                                color: "#f0f0f0"
                             }
                         }
-                        Rectangle{
-                            z: -1
+
+                        MouseArea {
                             anchors.fill: parent
-                            color: "#f0f0f0"
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            onClicked: (mouse) => {
+                                           if (mouse.button === Qt.RightButton)
+                                           contextMenu.popup()
+                                       }
+                            onPressAndHold: {
+                                if (mouse.source === Qt.MouseEventNotSynthesized)
+                                    contextMenu.popup()
+                            }
+
+                            Menu {
+                                id: contextMenu
+                                MenuItem {
+                                    text: "Поиск"
+                                    onTriggered: {
+                                        if (!searchForm.height) {
+                                            searchForm.height = 20
+                                            searchForm.focus = true
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

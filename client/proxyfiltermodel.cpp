@@ -1,10 +1,11 @@
 #include "proxyfiltermodel.h"
+#include <QObject>
 
 ProxyFilterModel::ProxyFilterModel(QObject *parent)
     : QSortFilterProxyModel(parent)
 {}
 
-void ProxyFilterModel::setFilterKind(Filter filter)
+void ProxyFilterModel::setFilterKind(FilterTypes::Filter filter)
 {
     filter_ = filter;
     invalidateFilter();
@@ -21,9 +22,9 @@ bool ProxyFilterModel::filterAcceptsRow(int source_row, const QModelIndex &sourc
     QModelIndex index = sourceModel()->index(source_row, 0, source_parent);
     QVariant value = sourceModel()->data(index, DialogModel::Roles::TextRole);
     if(value.isValid()){
-        if (filter_ == none)
+        if (filter_ == FilterTypes::NoneFiler)
             return true;
-        else  if (filter_ == searchMessage) {
+        else  if (filter_ == FilterTypes::SearchMessage) {
             QString val = value.toString();
             return value.toString().contains(key_);
         }

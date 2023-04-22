@@ -161,9 +161,9 @@ void Client::setCurReceiver(const QString &interlocutor)
     messageModel.setModel(interlocutor);
 }
 
-void Client::applyFilter(const QString &key)
+void Client::applyFilter(const FilterTypes::Filter &typeFilter, const QString &key)
 {
-    filterModel->setFilterKind(ProxyFilterModel::Filter::searchMessage);
+    filterModel->setFilterKind(typeFilter);
     filterModel->updateFilter(key);
 }
 

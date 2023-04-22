@@ -25,7 +25,7 @@ public:
     Q_INVOKABLE void postMessage(const QString &msg, const QString &receiver, const QString &type = "sendMessage");
     Q_INVOKABLE void addContact(const QString &cont);
     Q_INVOKABLE void setCurReceiver(const QString &interlocutor);
-    Q_INVOKABLE void applyFilter (const QString &key);
+    Q_INVOKABLE void applyFilter (const FilterTypes::Filter &typeFilter, const QString &key = QString());
 
     explicit Client(QObject *parent = nullptr);
     ~Client();
