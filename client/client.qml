@@ -27,7 +27,7 @@ ApplicationWindow {
                 text: !client.isConnect ? qsTr("Подключиться") :qsTr("Отключиться")
                 onTriggered: {
                     if (!client.isConnect)
-                        client.newConnection(ip.text, port.text)
+                        client.toConnect(ip.text, port.text)
                     else {
                         client.setCurReceiver(-1)
                         client.disconnect()
@@ -66,11 +66,29 @@ ApplicationWindow {
 
     Component  {
         id: identFowrm
-
         ColumnLayout {
-
+            Component.onCompleted: {
+                client.toConnect(ip.text, port.text)
+            }
+            Connections {
+                target: client
+                function onIsAutorisationChanged(){
+                    if (client.isAutorisation)
+                        loader.sourceComponent = mainForm
+                    else
+                        infoLbl.text = "Введены неверные данные, попробуйте снова"
+                }
+//                onAutorisationChanged: (success) => {
+//                    console.log("все ок!", success)
+//                }
+            }
             Item {
                 Layout.fillHeight: true
+            }
+            Label {
+                id: infoLbl
+                Layout.alignment: Qt.AlignCenter
+                text: "Введите логин и пароль"
             }
 
             Rectangle {
@@ -115,7 +133,26 @@ ApplicationWindow {
                     Layout.preferredWidth: 60
                     text: "Войти"
                     onClicked: {
-                        loader.sourceComponent = mainForm
+
+                        if (!client.isConnect) {
+                            infoLbl.text = "Отстствует подключение к серверу!"
+                        }
+                        else {
+                            if (login.text && password.text) {
+                                infoLbl.text = "Выполняется вход"
+                                client.autorisationToServer(login.text, password.text)
+                                //client.newConnection(ip.text, port.text,login.text, password.text)
+                            }
+                            else {
+                                infoLbl.text = "Пустые поля!"
+                            }
+                        }
+
+                        //else {
+                         //   client.setCurReceiver(-1)
+                        //    client.disconnect()
+                       // }
+                        //loader.sourceComponent = mainForm
                     }
                 }
 
@@ -123,7 +160,19 @@ ApplicationWindow {
                     Layout.preferredWidth: 60
                     text: "Регистрация"
                     onClicked: {
-                        loader.sourceComponent = mainForm
+                        if (!client.isConnect) {
+                            infoLbl.text = "Отстствует подключение к серверу!"
+                        }
+                        else {
+                            if (login.text && password.text) {
+                                infoLbl.text = "Выполняется регистрация"
+                                client.autorisationToServer(login.text, password.text, "reg")
+                                //client.newConnection(ip.text, port.text,login.text, password.text)
+                            }
+                            else {
+                                infoLbl.text = "Пустые поля!"
+                            }
+                        }
                     }
                 }
 

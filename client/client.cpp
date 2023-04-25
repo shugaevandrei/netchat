@@ -36,14 +36,25 @@ void Client::onRedyRead(){
 
             QJsonObject jMessage;
             in >> jMessage;
-
-            if(jMessage.value("type").toString() == "send_clients"){
+            if(jMessage.value("type").toString() == "send_clients") {
                 clients.clear();
                 contactModel.clearAll();
                 in >> clients;
 
                 for(auto client: clients.keys())
                     contactModel.add(client);
+            }
+            else if(jMessage.value("type").toString() == "get_accountingdata"){
+                postMessage(QString(), "-1", "send_accountingdata");
+            }
+            else if(jMessage.value("type").toString() == "succesIn"){
+                autorisation_ = true;
+                emit isAutorisationChanged();
+                //postMessage(QString(), "-1", "send_accountingdata");
+            }
+            else if(jMessage.value("type").toString() == "unsuccessIn") {
+                autorisation_ = false;//убрать?
+                emit isAutorisationChanged();//убрать?
             }
             else
                 messageModel.add(jMessage.value("message").toString(), "red");
@@ -65,13 +76,20 @@ void Client::onConnected()
 void Client::onDisconnected()
 {
     connect_ = false;
+    autorisation_ = false;
     emit isConnectChanged();
+    emit isAutorisationChanged();
     qDebug()<<"onDisconnected";
 }
 
 bool Client::isConnect()
 {
     return connect_;
+}
+
+bool Client::isAutorisation()
+{
+    return autorisation_;
 }
 
 ContactModel &Client::getContactModel()
@@ -112,7 +130,19 @@ quintptr Client::getReceiver(const QString &name)
     return -1;
 }
 
-void Client::newConnection(const QString &ip, const quint16 &port)
+void Client::autorisationToServer(const QString &login, const QString &pass, const QString &type)
+{
+    accData.login = login;
+    accData.pass = pass;
+
+
+    if (type == "reg")
+        postMessage(QString(), "-1", "registration");
+    else
+        postMessage(QString(), "-1", "send_accountingdata");
+}
+
+void Client::toConnect(const QString &ip, const quint16 &port)
 {
     mTcpSocket->connectToHost(ip, port);
 }
@@ -139,8 +169,15 @@ void Client::postMessage(const QString &msg, const QString &receiver ,const QStr
         quintptr descReceiver = getReceiver(receiver);
         if (descReceiver)
             out <<quint16(0)<< jMessage << descReceiver;
+        messageModel.add(addMess, "blue");
+    }
+    else if(type == "send_accountingdata"
+         || type == "registration") {
+        //отправка учетных данных
+        out <<quint16(0)<< jMessage << accData.login<<accData.pass;
     }
     else {
+
         qDebug()<<"Ошибка передачи сообщения!";
         return;
     }
@@ -148,7 +185,7 @@ void Client::postMessage(const QString &msg, const QString &receiver ,const QStr
     out.device()->seek(0);
     out <<quint16(data.size() - sizeof(quint16));
     mTcpSocket->write(data);
-    messageModel.add(addMess, "blue");
+
 }
 
 void Client::addContact(const QString &cont)
