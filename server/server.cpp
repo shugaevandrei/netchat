@@ -4,54 +4,33 @@
 
 Server::Server(QObject *parent) : QObject(parent)
 {
-    mTcpServer = new QTcpServer(this);
+    tcpServer_ = new QTcpServer(this);
 
-    connect(mTcpServer, &QTcpServer::newConnection, this, &Server::slotNewConnection);
+    connect(tcpServer_, &QTcpServer::newConnection, this, &Server::slotNewConnection);
 
-    if(!mTcpServer->listen(QHostAddress::Any, 6000)){
+    if(!tcpServer_->listen(QHostAddress::Any, 6000)) {
         qDebug() << "server is not started";
     } else {
         qDebug() << "server is started";
     }
-    blockSize = 0;
+    blockSize_ = 0;
 
-    clients.insert("2222",2323);
-    clients.insert("5455",275323);
-    clients.insert("6532",78);
-    users.insert("admin", "admin");
+    clients_.insert("2222",2323);
+    clients_.insert("5455",275323);
+    clients_.insert("6532",78);
+    users_.insert("admin", "admin");
 }
 
 void Server::slotNewConnection()
 {
-    QTcpSocket  *mTcpSocket = mTcpServer->nextPendingConnection();
+    QTcpSocket  *mTcpSocket = tcpServer_->nextPendingConnection();
     QJsonObject preambMessage;
-    //создаем запрос учетных данных
+
     connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
     connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
 
-    mTcpSockets.insert(mTcpSocket);
-    clients.insert(mTcpSocket->peerAddress().toString(), mTcpSocket->socketDescriptor());
-
-    //preambMessage.insert("type", "connect_success");
-    //sendMessageClient(mTcpSocket, preambMessage);
-
-//
-    //preambMessage.insert("type", "get_accountingdata");
-    //sendMessageClient(mTcpSocket, preambMessage);
-//
-
-//    if(!mTcpSockets.contains(mTcpSocket)){
-//        connect(mTcpSocket, &QTcpSocket::readyRead, this, &Server::slotServerRead);
-//        connect(mTcpSocket, &QTcpSocket::disconnected, this, &Server::slotClientDisconnected);
-
-//        mTcpSockets.insert(mTcpSocket);
-//        clients.insert(mTcpSocket->peerAddress().toString(), mTcpSocket->socketDescriptor());
-
-//        preambMessage.insert("type", "send_clients");
-//        for (auto sok: mTcpSockets){
-//            sendMessageClient(sok, preambMessage);
-//        }
-//    }
+    tcpSockets_.insert(mTcpSocket);
+    clients_.insert(mTcpSocket->peerAddress().toString(), mTcpSocket->socketDescriptor());
 }
 
 void Server::slotServerRead()
@@ -59,48 +38,47 @@ void Server::slotServerRead()
     qDebug()<<"slotServerRead";
     QTcpSocket  *sender = static_cast<QTcpSocket*>(QObject::sender());
     QDataStream in(sender);
-    blockSize = 0;
+    blockSize_ = 0;
     in.setVersion(QDataStream::Qt_6_4);
     if(in.status() ==QDataStream::Ok) {
         for(;;){
-            if(!blockSize){
+            if(!blockSize_){
                 if(sender->bytesAvailable() < sizeof(quint16))
                     break;
-                in >> blockSize;
-                qDebug()<<"blockSize"<<blockSize<<sender->bytesAvailable();
+                in >> blockSize_;
+                qDebug()<<"blockSize"<<blockSize_<<sender->bytesAvailable();
             }
 
-            if(sender->bytesAvailable() < blockSize)
+            if(sender->bytesAvailable() < blockSize_)
                 break;
 
-
-
-
-            QJsonObject str;
-            QJsonValue val;
+            QJsonObject preamb;
             qintptr descReceiver = 0;
 
-            in >> str ;//>> descReceiver;
-            qDebug()<<"тип сообщения на сервере"<<str.value("type").toString();
-            if (str.value("type").toString() == "send_accountingdata") {
+            in >> preamb ;
+            switch (preamb.value("type").toInt()) {
+            case static_cast<int>(PacketTypes::Types::Post_ServiceAutentification):
+            {
                 QString login, pass;
                 in >> login >> pass;
-                qDebug()<<login<<pass;
-                //проверка полученных данных
-                checkAccData(sender,login, pass);
+                _checkAccData(sender,login, pass);
                 return;
             }
-            else if (str.value("type").toString() == "registration") {
-                QString login, pass, type;
-                in >> login >> pass;// >> type;
-                qDebug()<<login<<pass<<type;
-                registration(login , pass);
+                break;
+            case static_cast<int>(PacketTypes::Types::ServiceRegistration):
+            {
+                QString login, pass;
+                in >> login >> pass;
+                _registration(sender, login , pass);
                 return;
             }
-            else
+                break;
+            default:
                 in >> descReceiver;
-            //blockSize = 0;
-            sendMessageClient(sender, str, descReceiver);
+                break;
+            }
+
+            _sendMessageClient(sender, PacketTypes::Types::ChatMessage, preamb.value("content").toString(), descReceiver);
             break;
         }
     }
@@ -112,107 +90,83 @@ void Server::slotClientDisconnected()//доработать
 
     sender->close();
     sender->deleteLater();//?
-    mTcpSockets.remove(sender);
+    tcpSockets_.remove(sender);
 
-    clients.remove(sender->peerAddress().toString());
+    clients_.remove(sender->peerAddress().toString());
 
     QJsonObject preambMessage;
-    preambMessage.insert("type", "send_clients");
-    for (auto sok: mTcpSockets){
-        sendMessageClient(sok, preambMessage);
-    }
+    for (auto sok: qAsConst(tcpSockets_))
+        _sendMessageClient(sok, PacketTypes::Types::Post_ServiceContactList);
 }
 
-bool Server::registration(const QString &log, const QString &pass)
+bool Server::_registration(QTcpSocket *sender, const QString &log, const QString &pass)
 {
     QHash<QString, QString>::iterator it;
-    for(it = users.begin(); it != users.end(); ++it){
+    for(it = users_.begin(); it != users_.end(); ++it){
         if(it.key() == log){
             //такой пользователь уже есть
-            qDebug()<<"плохо все, такой есть уже";
+            _sendMessageClient(sender, PacketTypes::Types::NotificatonSuccesReg, "0");
             return false;
         }
     }
-    qDebug()<<"ЗАРЕГАЛСЯ";
-    users.insert(log, pass);
+    _sendMessageClient(sender, PacketTypes::Types::NotificatonSuccesReg, "1");
+    users_.insert(log, pass);
     return true;
-
 }
 
-bool Server::checkAccData(QTcpSocket *sender, const QString &log, const QString &pass)
+bool Server::_checkAccData(QTcpSocket *sender, const QString &log, const QString &pass)
 {
-    QJsonObject sendClientsMess;
     QHash<QString, QString>::iterator it;
-    for(it = users.begin(); it != users.end(); ++it){
+    for(it = users_.begin(); it != users_.end(); ++it){
         if(it.key() == log && it.value() == pass) {
-            qDebug()<<"ВХОД УСПЕШЕН";
-
-            QJsonObject preambMessage;
-            preambMessage.insert("type", "succesIn");
-            qDebug()<<preambMessage.value("type");
-            sendMessageClient(sender, preambMessage);//отправка подтверждения успешного входа
-
-            //отправлем список клиентов
-           // preambMessage.remove("type");
-            //qDebug()<<preambMessage.value("type");
-
-            sendClientsMess.insert("type", "send_clients");
-            qDebug()<<sendClientsMess.value("type");
-            for (const auto &sok: qAsConst(mTcpSockets)){
-                sendMessageClient(sok, sendClientsMess);
-            }
-            //
+            _sendMessageClient(sender, PacketTypes::Types::NotificatonSuccesIn, "1");
+            for (const auto &sok: qAsConst(tcpSockets_))
+                _sendMessageClient(sok, PacketTypes::Types::Post_ServiceContactList);
             return true;
         }
     }
-    qDebug()<<"ВХОД НЕ УСПЕШЕН!";
-    sendClientsMess.insert("type", "unsuccessIn");
-    sendMessageClient(sender, sendClientsMess);
+    _sendMessageClient(sender, PacketTypes::Types::NotificatonSuccesIn, "0");
     return false;
 }
 
-void Server::sendMessageClient(QTcpSocket *sender, const QJsonObject jData ,qintptr receiverDesc)
+void Server::_sendMessageClient(QTcpSocket *sender, const PacketTypes::Types &type, const QString &msg, qintptr receiverDesc)
 {
-    data.clear();
-    qDebug()<<"jData.value.toString()"<<jData.value("type").toString()<<"?";
-    QTcpSocket* receiver = getReceiverSok(receiverDesc);
-    QDataStream out(&data, QIODevice::WriteOnly);
+    data_.clear();
+    QTcpSocket* receiver = _getReceiverSok(receiverDesc);
+    QDataStream out(&data_, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_6_4);
+
+    QJsonObject packet  = protocol::formsPacket(type, msg);
     //формирование уникального списка контакнтов для каждого пользователя
-    if(jData.value("type").toString() == "send_clients"){
+
+    if(type == PacketTypes::Types::Post_ServiceContactList){
         QHash<QString, qintptr> uniqClients;
         QHash<QString, qintptr>::iterator it;
-        for(it = clients.begin(); it != clients.end(); ++it){
+        for(it = clients_.begin(); it != clients_.end(); ++it){
             if (sender->socketDescriptor() != it.value())
                 uniqClients.insert(it.key(), it.value());
         }
-        out << quint16(0) << jData << uniqClients;
-        qDebug()<<"send_clients";
+        out << quint16(0) << packet << uniqClients;
     }
-    else if (jData.value("type").toString() == "get_accountingdata"
-             /*|| jData.value("type").toString() == "connect_success"*/) {
-        out << quint16(0) << jData;
-
-    }
+    else if (type == PacketTypes::Types::Get_ServiceAutentification)
+        out << quint16(0) << packet;
     else
-        out << quint16(0) << jData;
+        out << quint16(0) << packet;
 
     out.device()->seek(0);
-    out <<quint16(data.size() - sizeof(quint16));
+    out <<quint16(data_.size() - sizeof(quint16));
 
     if(receiver && receiverDesc){
-        receiver->write(data);
+        receiver->write(data_);
         return;
     }
-    else {
-        sender->write(data);
-        qDebug()<<"такого сокета нет!";
-    }
+    else
+        sender->write(data_);
 }
 
-QTcpSocket *Server::getReceiverSok(qintptr desc)
+QTcpSocket *Server::_getReceiverSok(qintptr desc)
 {
-    for (auto sok: mTcpSockets){
+    for (auto sok: qAsConst(tcpSockets_)) {
         if( sok->socketDescriptor() == desc){
             return sok;
         }

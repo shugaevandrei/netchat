@@ -5,6 +5,7 @@
 #include <QQuickView>
 #include <QQuickStyle>
 #include "client.h"
+#include "protocol.h"
 
 int main(int argc, char *argv[])
 {
@@ -21,10 +22,14 @@ int main(int argc, char *argv[])
                 FilterTypes::staticMetaObject,
                 "FiltersTypes", 1, 0, "FilterTypes",
                 "Access to enums & flags only");
+    qmlRegisterUncreatableMetaObject(
+                PacketTypes::staticMetaObject,
+                "PacketsTypes", 1, 0, "PacketTypes",
+                "Access to enums & flags only");
 
     engine.rootContext()->setContextProperty("client", &client);
-    engine.rootContext()->setContextProperty("dialogModel", &*client.getModel());
-    engine.rootContext()->setContextProperty("contactModel", &client.getContactModel());
+    engine.rootContext()->setContextProperty("dialogModel", &*client.getDialogModel());
+    engine.rootContext()->setContextProperty("contactModel", &*client.getContactModel());
 
     const QUrl url("qrc:/client.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

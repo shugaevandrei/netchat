@@ -10,6 +10,10 @@ SOURCES += \
 HEADERS += \
     server.h
 
+INCLUDEPATH = "C:/git/netChat/chat/protocol"
+LIBS = "C:/git/netChat/chat/build-protocol-Felgo_SDK_Desktop_Qt_6_4_1_MinGW_64_bit-Debug/debug/libprotocol.a"
+
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin

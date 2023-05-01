@@ -7,8 +7,7 @@ namespace FilterTypes {
   Q_NAMESPACE
   enum Filter {
       NoneFiler,
-      SearchMessage,
-      TEST
+      SearchMessage
   };
   Q_ENUMS(Filter)
 }

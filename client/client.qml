@@ -2,7 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import QtQml
 import FiltersTypes 1.0
+import PacketsTypes 1.0
 //import QtQuick.Controls.Material 2.0
 
 ApplicationWindow {
@@ -22,20 +24,8 @@ ApplicationWindow {
     menuBar: MenuBar {
         Menu {
             title: qsTr("Меню")
-
             MenuItem {
-                text: !client.isConnect ? qsTr("Подключиться") :qsTr("Отключиться")
-                onTriggered: {
-                    if (!client.isConnect)
-                        client.toConnect(ip.text, port.text)
-                    else {
-                        client.setCurReceiver(-1)
-                        client.disconnect()
-                    }
-                }
-            }
-
-            MenuItem {
+                enabled: client.isAutorisation
                 text: qsTr("Добавить контакт")
                 onTriggered: {
                     newContact.focus = true
@@ -70,25 +60,48 @@ ApplicationWindow {
             Component.onCompleted: {
                 client.toConnect(ip.text, port.text)
             }
-            Connections {
-                target: client
-                function onIsAutorisationChanged(){
-                    if (client.isAutorisation)
-                        loader.sourceComponent = mainForm
-                    else
-                        infoLbl.text = "Введены неверные данные, попробуйте снова"
-                }
-//                onAutorisationChanged: (success) => {
-//                    console.log("все ок!", success)
-//                }
-            }
+
             Item {
                 Layout.fillHeight: true
             }
-            Label {
-                id: infoLbl
+            RowLayout {
                 Layout.alignment: Qt.AlignCenter
-                text: "Введите логин и пароль"
+
+                Label {
+                    id: infoLbl
+                    text: client.isConnect ? "Введите логин и пароль" : "Нет подключения к серверу"
+                    color: client.isConnect ? "black" : "red"
+
+                    Connections {
+                        target: client
+                        function onIsAutorisationChanged(){
+                            if (client.isAutorisation)
+                                loader.sourceComponent = mainForm
+                            else
+                                infoLbl.text = "Введены неверные данные, попробуйте снова"
+                        }
+                        function onIsUnconnectingChanged(){
+                            if (client.isUnconnecting) {
+                                infoLbl.text = "Попытка подключения к серверу"
+                                client.toConnect(ip.text, port.text)
+                            }
+                        }
+                        function onIsConnectChanged(){
+                            if (client.isConnect)
+                                infoLbl.text = "Введите логин и пароль"
+                        }
+                        function onIsRegistrationChanged(){
+                            if (client.isRegistration)
+                                infoLbl.text = "Регистраиця успешна!"
+                            else
+                                infoLbl.text = "Такой пользователь уже есть"
+                        }
+                    }
+                }
+                BusyIndicator {
+                    visible: client.isUnconnecting
+                    running: client.isUnconnecting
+                }
             }
 
             Rectangle {
@@ -126,56 +139,42 @@ ApplicationWindow {
                 }
             }
 
+            CheckBox {
+                Layout.alignment: Qt.AlignCenter
+                checked: true
+                text: qsTr("Запомнить меня")
+            }
+
             RowLayout {
                 Layout.alignment: Qt.AlignCenter
 
                 Button {
                     Layout.preferredWidth: 60
                     text: "Войти"
+                    enabled: client.isConnect
                     onClicked: {
-
-                        if (!client.isConnect) {
-                            infoLbl.text = "Отстствует подключение к серверу!"
-                        }
-                        else {
                             if (login.text && password.text) {
                                 infoLbl.text = "Выполняется вход"
-                                client.autorisationToServer(login.text, password.text)
-                                //client.newConnection(ip.text, port.text,login.text, password.text)
+                                client.autorisation(login.text, password.text)
                             }
-                            else {
+                            else
                                 infoLbl.text = "Пустые поля!"
-                            }
-                        }
-
-                        //else {
-                         //   client.setCurReceiver(-1)
-                        //    client.disconnect()
-                       // }
-                        //loader.sourceComponent = mainForm
                     }
                 }
 
                 Button {
                     Layout.preferredWidth: 60
                     text: "Регистрация"
+                    enabled: client.isConnect
                     onClicked: {
-                        if (!client.isConnect) {
-                            infoLbl.text = "Отстствует подключение к серверу!"
-                        }
-                        else {
                             if (login.text && password.text) {
                                 infoLbl.text = "Выполняется регистрация"
-                                client.autorisationToServer(login.text, password.text, "reg")
-                                //client.newConnection(ip.text, port.text,login.text, password.text)
+                                client.registration(login.text, password.text)
                             }
-                            else {
+                            else
                                 infoLbl.text = "Пустые поля!"
-                            }
-                        }
                     }
                 }
-
             }
 
             Item {
@@ -362,7 +361,7 @@ ApplicationWindow {
                                             switch(event.key){
                                                 case Qt.Key_Enter:
                                                 case Qt.Key_Return: {
-                                                    client.postMessage(messageArea.text, getDelegateInstanceAt(contact, contact.currentIndex))
+                                                    client.postMessage(messageArea.text, PacketTypes.ChatMessage, getDelegateInstanceAt(contact, contact.currentIndex))
                                                     messageArea.clear()
                                                     event.accepted = true;
                                                 }
@@ -380,7 +379,7 @@ ApplicationWindow {
                         enabled: messageArea.text.length && (contact.currentIndex >= 0)
                         text: "отправить"
                         onClicked: {
-                            client.postMessage(messageArea.text, getDelegateInstanceAt(contact, contact.currentIndex))
+                            client.postMessage(messageArea.text, PacketTypes.ChatMessage, getDelegateInstanceAt(contact, contact.currentIndex))
                             messageArea.clear()
                         }
                     }
@@ -458,7 +457,6 @@ ApplicationWindow {
         }
 
         ColumnLayout {
-
             Label {
                 text: "Введите IP-адрес"
             }

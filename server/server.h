@@ -1,5 +1,7 @@
 #pragma once
 
+#include "protocol.h"
+
 #include <QObject>
 #include <QString>
 #include <QTcpServer>
@@ -14,21 +16,24 @@ class Server : public QObject
     Q_OBJECT
 public:
     explicit Server(QObject *parent = 0);
+
 public slots:
     void slotNewConnection();
     void slotServerRead();
     void slotClientDisconnected();
 
 private:
-    bool registration (const QString &log, const QString &pass);
-    bool checkAccData(QTcpSocket *sender, const QString &log, const QString &pass);
-    void sendMessageClient(QTcpSocket *sender, const QJsonObject jData, qintptr receiverDesc = -1);
-    QTcpSocket* getReceiverSok(qintptr desc);
-    QTcpServer * mTcpServer;
-    QSet<QTcpSocket *> mTcpSockets;
-    QByteArray data;
-    QHash<QString, qintptr> clients;
-    QHash<QString, QString> users;
-    QJsonObject json;
-    quint16 blockSize = 0;
+    bool _registration(QTcpSocket *sender, const QString &log, const QString &pass);
+    bool _checkAccData(QTcpSocket *sender, const QString &log, const QString &pass);
+    void _sendMessageClient(QTcpSocket *sender,
+                            const PacketTypes::Types &type = PacketTypes::Types::ChatMessage,
+                           const QString &msg = QString(),
+                            qintptr receiverDesc = -1);
+    QTcpSocket *_getReceiverSok(qintptr desc);
+    QTcpServer *tcpServer_;
+    QSet<QTcpSocket *> tcpSockets_;
+    QByteArray data_;
+    QHash<QString, qintptr> clients_;
+    QHash<QString, QString> users_;
+    quint16 blockSize_ = 0;
 };

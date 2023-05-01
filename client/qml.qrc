@@ -3,5 +3,7 @@
         <file>client.qml</file>
         <file>params.json</file>
         <file>backCorn.png</file>
+        <file>AnimationConnect.qml</file>
+        <file>connect.png</file>
     </qresource>
 </RCC>

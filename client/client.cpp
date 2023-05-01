@@ -2,14 +2,22 @@
 
 Client::Client(QObject *parent)
     : QObject{parent},
-     filterModel(new ProxyFilterModel)
+      messageModel_(new DialogModel),
+      contactModel_(new ContactModel),
+      filterModel_(new ProxyFilterModel)
 {
-    mTcpSocket = new QTcpSocket(this);
-    connect(mTcpSocket, &QAbstractSocket::readyRead,this ,&Client::onRedyRead);
-    connect(mTcpSocket, &QAbstractSocket::connected,this ,&Client::onConnected);
-    connect(mTcpSocket, &QAbstractSocket::disconnected,this ,&Client::onDisconnected);
-    blockSize = 0;
-    filterModel->setSourceModel(&messageModel);
+    tcpSocket_ = new QTcpSocket(this);
+    connect(tcpSocket_, &QAbstractSocket::readyRead, this, &Client::onRedyRead);
+    connect(tcpSocket_, &QAbstractSocket::connected, this, &Client::onConnected);
+    connect(tcpSocket_, &QAbstractSocket::disconnected, this, &Client::onDisconnected);
+    connect(tcpSocket_, &QAbstractSocket::stateChanged, this, [this] {
+        if (tcpSocket_->state() == QAbstractSocket::UnconnectedState) {
+            unconnecting_ = true;
+            emit isUnconnectingChanged();
+        }
+    });
+    blockSize_ = 0;
+    filterModel_->setSourceModel(&*messageModel_);
     readDialogs();
 }
 
@@ -21,44 +29,51 @@ Client::~Client()
 void Client::onRedyRead(){
     qDebug()<<"readyRead";
 
-    QDataStream in(mTcpSocket);
+    QDataStream in(tcpSocket_);
     in.setVersion(QDataStream::Qt_6_4);
 
-    if(in.status() == QDataStream::Ok){
-        while(1){
-            if(!blockSize){
-                if(mTcpSocket->bytesAvailable() < sizeof(quint16))
+    if(in.status() == QDataStream::Ok) {
+        while(1) {
+            if(!blockSize_) {
+                if(tcpSocket_->bytesAvailable() < sizeof(quint16))
                     break;
-                in >> blockSize;
+                in >> blockSize_;
             }
-            if(mTcpSocket->bytesAvailable() < blockSize)
+            if(tcpSocket_->bytesAvailable() < blockSize_)
                 break;
 
-            QJsonObject jMessage;
-            in >> jMessage;
-            if(jMessage.value("type").toString() == "send_clients") {
-                clients.clear();
-                contactModel.clearAll();
-                in >> clients;
+            QJsonObject preamb;
+            in >> preamb;
 
-                for(auto client: clients.keys())
-                    contactModel.add(client);
-            }
-            else if(jMessage.value("type").toString() == "get_accountingdata"){
-                postMessage(QString(), "-1", "send_accountingdata");
-            }
-            else if(jMessage.value("type").toString() == "succesIn"){
-                autorisation_ = true;
+            switch(preamb.value("type").toInt()) {
+            case static_cast<int>(PacketTypes::Types::Post_ServiceContactList):
+                clients_.clear();
+                contactModel_->clearAll();
+                in >> clients_;
+
+                for(auto client: clients_.keys())
+                    contactModel_->add(client);
+                break;
+            case  static_cast<int>(PacketTypes::Types::Get_ServiceAutentification):
+                postMessage(QString(), PacketTypes::Types::Post_ServiceAutentification);
+                break;
+            case static_cast<int>(PacketTypes::Types::NotificatonSuccesIn):
+                autorisation_ = false;
+                if (preamb.value("content").toString().toInt())
+                    autorisation_ = true;
                 emit isAutorisationChanged();
-                //postMessage(QString(), "-1", "send_accountingdata");
+                break;
+            case static_cast<int>(PacketTypes::Types::NotificatonSuccesReg):
+                registration_ = false;
+                if (preamb.value("content").toString().toInt())
+                    registration_ = true;
+                emit isRegistrationChanged();
+                break;
+            default:
+                messageModel_->add(preamb.value("content").toString(), "red");
+                break;
             }
-            else if(jMessage.value("type").toString() == "unsuccessIn") {
-                autorisation_ = false;//убрать?
-                emit isAutorisationChanged();//убрать?
-            }
-            else
-                messageModel.add(jMessage.value("message").toString(), "red");
-            blockSize = 0;
+            blockSize_ = 0;
         }
     }
     else {
@@ -69,7 +84,9 @@ void Client::onRedyRead(){
 void Client::onConnected()
 {
     connect_ = true;
+    unconnecting_ = false;
     emit isConnectChanged();
+    emit isUnconnectingChanged();
     qDebug()<<"onConnected";
 }
 
@@ -78,7 +95,6 @@ void Client::onDisconnected()
     connect_ = false;
     autorisation_ = false;
     emit isConnectChanged();
-    emit isAutorisationChanged();
     qDebug()<<"onDisconnected";
 }
 
@@ -87,24 +103,34 @@ bool Client::isConnect()
     return connect_;
 }
 
+bool Client::isUnconnecting()
+{
+    return unconnecting_;
+}
+
 bool Client::isAutorisation()
 {
     return autorisation_;
 }
 
-ContactModel &Client::getContactModel()
+bool Client::isRegistration()
 {
-    return contactModel;
+    return registration_;
+}
+
+QScopedPointer<ContactModel> &Client::getContactModel()
+{
+    return contactModel_;
 }
 
 void Client::saveDialogs()
 {
-    messageModel.saveCurrentModel();
+    messageModel_->saveCurrentModel();
 
     QFile out("dialogs.bin");
-    if( out.open( QIODevice::WriteOnly )) {
+    if(out.open( QIODevice::WriteOnly)) {
         QDataStream stream( &out );
-        stream << messageModel.getModel();
+        stream << messageModel_->getModel();
         out.close();
     }
 }
@@ -112,99 +138,97 @@ void Client::saveDialogs()
 void Client::readDialogs()
 {
     QFile in("dialogs.bin");
-    if( in.open( QIODevice::ReadOnly )) {
+    if(in.open( QIODevice::ReadOnly)) {
         QHash<QString, QList<Message>> model;
         QDataStream stream( &in );
         stream >> model;
-        messageModel.setModel(model);
+        messageModel_->setModel(model);
         in.close();
     }
 }
 
 quintptr Client::getReceiver(const QString &name)
 {
-    for(auto val: clients.keys()){
+    for(auto val: clients_.keys()) {
         if(name == val)
-            return clients[val];
+            return clients_[val];
     }
     return -1;
 }
 
-void Client::autorisationToServer(const QString &login, const QString &pass, const QString &type)
+void Client::autorisation(const QString &login, const QString &pass)
 {
-    accData.login = login;
-    accData.pass = pass;
+    accData_.login = login;
+    accData_.pass = pass;
+    postMessage(QString(), PacketTypes::Types::Post_ServiceAutentification);
+}
 
-
-    if (type == "reg")
-        postMessage(QString(), "-1", "registration");
-    else
-        postMessage(QString(), "-1", "send_accountingdata");
+void Client::registration(const QString &login, const QString &pass)
+{
+    accData_.login = login;
+    accData_.pass = pass;
+    postMessage(QString(), PacketTypes::Types::ServiceRegistration);
 }
 
 void Client::toConnect(const QString &ip, const quint16 &port)
 {
-    mTcpSocket->connectToHost(ip, port);
+    tcpSocket_->connectToHost(ip, port);
 }
 
 void Client::disconnect()
 {
-    mTcpSocket->disconnectFromHost();
-    contactModel.clearAll();
+    tcpSocket_->disconnectFromHost();
+    contactModel_->clearAll();
 }
 
-void Client::postMessage(const QString &msg, const QString &receiver ,const QString &type)
+void Client::postMessage(const QString &msg, const PacketTypes::Types &type, const QString &receiver)
 {
-    QJsonObject jMessage;
-    QString addMess = QDateTime::currentDateTime().toString("[dd.MM hh:mm:ss] ") + msg;
-    data.clear();
+    data_.clear();
+    QString addTimeMess = QDateTime::currentDateTime().toString("[dd.MM hh:mm:ss] ") + msg;
+    QJsonObject packet  = protocol::formsPacket(type,addTimeMess);
+    QDataStream out(&data_, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_DefaultCompiledVersion);
 
-    jMessage.insert("type", type);
-    jMessage.insert("message", addMess);
-
-    QDataStream out(&data, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_6_4);
-
-    if(type == "sendMessage") {
+    switch (type) {
+    case PacketTypes::Types::ChatMessage: {
         quintptr descReceiver = getReceiver(receiver);
         if (descReceiver)
-            out <<quint16(0)<< jMessage << descReceiver;
-        messageModel.add(addMess, "blue");
+            out <<quint16(0)<< packet << descReceiver;
+        messageModel_->add(addTimeMess, "blue");
     }
-    else if(type == "send_accountingdata"
-         || type == "registration") {
-        //отправка учетных данных
-        out <<quint16(0)<< jMessage << accData.login<<accData.pass;
-    }
-    else {
-
+        break;
+    case PacketTypes::Types::Post_ServiceAutentification:
+    case PacketTypes::Types::ServiceRegistration:
+        out <<quint16(0)<< packet << accData_.login<<accData_.pass;
+        break;
+    default:
         qDebug()<<"Ошибка передачи сообщения!";
         return;
+        break;
     }
 
     out.device()->seek(0);
-    out <<quint16(data.size() - sizeof(quint16));
-    mTcpSocket->write(data);
-
+    out <<quint16(data_.size() - sizeof(quint16));
+    tcpSocket_->write(data_);
 }
 
 void Client::addContact(const QString &cont)
 {
-    contactModel.add(cont);
+    contactModel_->add(cont);
 }
 
 void Client::setCurReceiver(const QString &interlocutor)
 {
-    messageModel.setModel(interlocutor);
+    messageModel_->setModel(interlocutor);
 }
 
 void Client::applyFilter(const FilterTypes::Filter &typeFilter, const QString &key)
 {
-    filterModel->setFilterKind(typeFilter);
-    filterModel->updateFilter(key);
+    filterModel_->setFilterKind(typeFilter);
+    filterModel_->updateFilter(key);
 }
 
-QScopedPointer<ProxyFilterModel> &Client::getModel()
+QScopedPointer<ProxyFilterModel> &Client::getDialogModel()
 {
-    return filterModel;
+    return filterModel_;
 }

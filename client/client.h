@@ -3,6 +3,7 @@
 #include "dialogmodel.h"
 #include "contactmodel.h"
 #include "proxyfiltermodel.h"
+#include "protocol.h"
 
 #include <QObject>
 #include <QTcpSocket>
@@ -21,10 +22,15 @@ class Client : public QObject
 public:
     Q_PROPERTY (bool isConnect READ isConnect NOTIFY isConnectChanged)
     Q_PROPERTY (bool isAutorisation READ isAutorisation NOTIFY isAutorisationChanged)
-    Q_INVOKABLE void autorisationToServer(const QString &login, const QString &pass, const QString &type  = "in");
+    Q_PROPERTY (bool isRegistration READ isRegistration NOTIFY isRegistrationChanged)
+    Q_PROPERTY (bool isUnconnecting READ isUnconnecting NOTIFY isUnconnectingChanged)
+    Q_INVOKABLE void autorisation(const QString &login, const QString &pass);
+    Q_INVOKABLE void registration(const QString &login, const QString &pass);
     Q_INVOKABLE void toConnect(const QString &ip, const quint16 &port);
     Q_INVOKABLE void disconnect();
-    Q_INVOKABLE void postMessage(const QString &msg, const QString &receiver, const QString &type = "sendMessage");
+    Q_INVOKABLE void postMessage(const QString &msg,
+                                 const PacketTypes::Types &type = PacketTypes::Types::ChatMessage,
+                                 const QString &receiver = "-1");
     Q_INVOKABLE void addContact(const QString &cont);
     Q_INVOKABLE void setCurReceiver(const QString &interlocutor);
     Q_INVOKABLE void applyFilter (const FilterTypes::Filter &typeFilter, const QString &key = QString());
@@ -38,9 +44,11 @@ public:
     };
 
     bool isConnect();
+    bool isUnconnecting();
     bool isAutorisation();
-    QScopedPointer<ProxyFilterModel> &getModel();
-    ContactModel& getContactModel();
+    bool isRegistration();
+    QScopedPointer<ProxyFilterModel> &getDialogModel();
+    QScopedPointer<ContactModel> &getContactModel();
     void saveDialogs();
     void readDialogs();
     quintptr getReceiver(const QString &name);
@@ -52,17 +60,21 @@ private slots:
 
 signals:
     void isConnectChanged();
+    void isUnconnectingChanged();
     void isAutorisationChanged();
+    void isRegistrationChanged();
 
 private:
-    DialogModel messageModel;
-    ContactModel contactModel;
-    QScopedPointer<ProxyFilterModel> filterModel;
-    QTcpSocket * mTcpSocket;
+    QScopedPointer<DialogModel> messageModel_;
+    QScopedPointer<ContactModel> contactModel_;
+    QScopedPointer<ProxyFilterModel> filterModel_;
+    QTcpSocket *tcpSocket_;
     bool connect_ = false;
+    bool unconnecting_ = false;
     bool autorisation_  = false;
-    AccData accData;
-    QByteArray data;
-    qint16 blockSize = 0;
-    QHash<QString, qintptr> clients;
+    bool registration_ = false;
+    AccData accData_;
+    QByteArray data_;
+    qint16 blockSize_ = 0;
+    QHash<QString, qintptr> clients_;
 };
