@@ -200,6 +200,7 @@ ApplicationWindow {
                     Layout.preferredHeight: 200
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     ScrollBar.vertical.interactive: true
+                    clip: true
 
                     ListView {
                         id: contact
@@ -404,11 +405,22 @@ ApplicationWindow {
 
         ColumnLayout {
 
-            Label {
-                text: "IP-адрес нового контакта"
+            Connections {
+                target: client
+                function onIsAddContactChanged() {
+                    if (client.isAddContact)
+                        nameArea.text = "Новый контакт добавлен"
+                    else
+                        nameArea.text = "Такого контакта нет"
+                }
             }
 
-            Rectangle{
+            Label {
+                id: nameArea
+                text: "Логин нового контакта"
+            }
+
+            Rectangle {
                 width: ip.width
                 height:  ip.height
                 color: "transparent"
@@ -416,17 +428,14 @@ ApplicationWindow {
                 border.width: 1
 
                 TextInput {
-                    id: ipNewCont
+                    id: logNewCont
                     width:  120
                     height: 20
                     Layout.preferredWidth: 100
                     verticalAlignment: TextInput.AlignVCenter
                     horizontalAlignment: TextInput.AlignHCenter
-                    validator: RegularExpressionValidator {
-                        regularExpression:  /^((?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){0,3}(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$/
-                    }
                     onAccepted: {
-                        client.addContact(ipNewCont.text)
+                        client.addContact(logNewCont.text)
                     }
                 }
             }
@@ -436,8 +445,8 @@ ApplicationWindow {
                 Layout.preferredWidth: 100
                 text: "добавить контакт"
                 onClicked: {
-                    client.addContact(ipNewCont.text)
-                    newContact.close()
+                    client.addContact(logNewCont.text)
+                    //newContact.close()
                 }
             }
         }

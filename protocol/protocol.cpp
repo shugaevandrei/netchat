@@ -3,6 +3,7 @@
 QJsonObject protocol::formsPacket(PacketTypes::Types type, QString content) {
     QJsonObject packet;
     packet.insert("type", static_cast<int>(type));
+    packet.insert("time", QDateTime::currentDateTime().toString("[dd.MM hh:mm:ss] "));
     packet.insert("content", content);
     return packet;
 };
@@ -36,6 +37,12 @@ QString protocol::toString(PacketTypes::Types type)
     break;
     case PacketTypes::Types::ServiceRegistration:
         return "ServiceRegistration";
+    break;
+    case PacketTypes::Types::ServiceAddContact:
+        return "ServiceAddContact";
+    break;
+    case PacketTypes::Types::NotificatonSuccesAddContact:
+        return "NotificatonSuccesAddContact";
     break;
     default:
         return "ТАКОГО ТИПА СООБЩЕНИЯ НЕТ!";

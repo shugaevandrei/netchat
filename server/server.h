@@ -9,7 +9,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QHash>
-#include <QPair>
+#include <QSqlDatabase>
 
 class Server : public QObject
 {
@@ -28,12 +28,16 @@ private:
     void _sendMessageClient(QTcpSocket *sender,
                             const PacketTypes::Types &type = PacketTypes::Types::ChatMessage,
                            const QString &msg = QString(),
-                            qintptr receiverDesc = -1);
-    QTcpSocket *_getReceiverSok(qintptr desc);
+                            QString receiver = "-1"
+                            /*qintptr receiverDesc*/ );
+    void _addNewContact(QTcpSocket *sender ,const QString &login);
+   // QTcpSocket *_getReceiverSok(qintptr desc);
+    QTcpSocket *_getReceiverSok(const QString &login);
     QTcpServer *tcpServer_;
-    QSet<QTcpSocket *> tcpSockets_;
+    QHash<QTcpSocket *, QString> tcpSockets_;
     QByteArray data_;
-    QHash<QString, qintptr> clients_;
-    QHash<QString, QString> users_;
+   // QHash<QString, qintptr> clients_;//возможно не нужно
+    //QHash<QString, QString> users_;
     quint16 blockSize_ = 0;
+    QSqlDatabase db_;
 };

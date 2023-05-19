@@ -20,9 +20,9 @@ QVariant ContactModel::data(const QModelIndex &index, int role) const
 
     switch (role) {
     case ColorRole:
-        return QVariant(index.row() < 2 ? "black" : "gray");
+        return _contact.at(index.row()).status ? "lightseagreen" : "dimgray";
     case TextRole:
-        return _contact.at(index.row());
+        return _contact.at(index.row()).login;
     default:
         return QVariant();
     }
@@ -37,7 +37,7 @@ QHash<int, QByteArray> ContactModel::roleNames() const
     return roles;
 }
 
-void ContactModel::add(const QString &msg)
+void ContactModel::add(const User &msg)
 {
     beginInsertRows(QModelIndex(), _contact.size(), _contact.size());
     _contact.append(msg);

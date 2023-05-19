@@ -47,12 +47,12 @@ void Client::onRedyRead(){
 
             switch(preamb.value("type").toInt()) {
             case static_cast<int>(PacketTypes::Types::Post_ServiceContactList):
-                clients_.clear();
+                conacts_.clear();
                 contactModel_->clearAll();
-                in >> clients_;
+                in >> conacts_;
 
-                for(auto client: clients_.keys())
-                    contactModel_->add(client);
+                for(const auto &client: conacts_.keys())
+                    contactModel_->add(ContactModel::User(client, conacts_[client]));
                 break;
             case  static_cast<int>(PacketTypes::Types::Get_ServiceAutentification):
                 postMessage(QString(), PacketTypes::Types::Post_ServiceAutentification);
@@ -68,6 +68,12 @@ void Client::onRedyRead(){
                 if (preamb.value("content").toString().toInt())
                     registration_ = true;
                 emit isRegistrationChanged();
+                break;
+            case static_cast<int>(PacketTypes::Types::NotificatonSuccesAddContact):
+                addContact_ = false;
+                if (preamb.value("content").toString().toInt())
+                    addContact_ = true;
+                emit isAddContactChanged();
                 break;
             default:
                 messageModel_->add(preamb.value("content").toString(), "red");
@@ -118,6 +124,11 @@ bool Client::isRegistration()
     return registration_;
 }
 
+bool Client::isAddContact()
+{
+    return addContact_;
+}
+
 QScopedPointer<ContactModel> &Client::getContactModel()
 {
     return contactModel_;
@@ -149,9 +160,9 @@ void Client::readDialogs()
 
 quintptr Client::getReceiver(const QString &name)
 {
-    for(auto val: clients_.keys()) {
-        if(name == val)
-            return clients_[val];
+    for(const auto &val: conacts_.keys()) {
+        if(name == val){}
+            return conacts_[val];
     }
     return -1;
 }
@@ -184,22 +195,25 @@ void Client::disconnect()
 void Client::postMessage(const QString &msg, const PacketTypes::Types &type, const QString &receiver)
 {
     data_.clear();
-    QString addTimeMess = QDateTime::currentDateTime().toString("[dd.MM hh:mm:ss] ") + msg;
-    QJsonObject packet  = protocol::formsPacket(type,addTimeMess);
+    //QString addTimeMess = QDateTime::currentDateTime().toString("[dd.MM hh:mm:ss] ") + msg;
+    QJsonObject packet  = protocol::formsPacket(type, msg);
     QDataStream out(&data_, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_DefaultCompiledVersion);
 
     switch (type) {
     case PacketTypes::Types::ChatMessage: {
-        quintptr descReceiver = getReceiver(receiver);
-        if (descReceiver)
-            out <<quint16(0)<< packet << descReceiver;
-        messageModel_->add(addTimeMess, "blue");
+        //quintptr descReceiver = getReceiver(receiver);
+        if (receiver != "-1")
+            out <<quint16(0)<< packet << receiver;
+        messageModel_->add(msg, "blue");
     }
         break;
     case PacketTypes::Types::Post_ServiceAutentification:
     case PacketTypes::Types::ServiceRegistration:
         out <<quint16(0)<< packet << accData_.login<<accData_.pass;
+        break;
+    case PacketTypes::Types::ServiceAddContact:
+        out <<quint16(0)<< packet;
         break;
     default:
         qDebug()<<"Ошибка передачи сообщения!";
@@ -214,7 +228,8 @@ void Client::postMessage(const QString &msg, const PacketTypes::Types &type, con
 
 void Client::addContact(const QString &cont)
 {
-    contactModel_->add(cont);
+    //contactModel_->add(cont);
+     postMessage(cont, PacketTypes::Types::ServiceAddContact);
 }
 
 void Client::setCurReceiver(const QString &interlocutor)

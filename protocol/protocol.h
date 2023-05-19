@@ -10,12 +10,15 @@ enum Types {
 
     NotificatonSuccesIn,
     NotificatonSuccesReg,
+    NotificatonSuccesAddContact,
 
     ChatMessage,
 
     Get_ServiceAutentification,
 
     ServiceRegistration,
+    ServiceAddContact,
+
     Post_ServiceAutorisation,
     Post_ServiceAutentification,
 

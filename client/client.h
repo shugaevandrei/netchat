@@ -24,6 +24,7 @@ public:
     Q_PROPERTY (bool isAutorisation READ isAutorisation NOTIFY isAutorisationChanged)
     Q_PROPERTY (bool isRegistration READ isRegistration NOTIFY isRegistrationChanged)
     Q_PROPERTY (bool isUnconnecting READ isUnconnecting NOTIFY isUnconnectingChanged)
+    Q_PROPERTY (bool isAddContact READ isAddContact NOTIFY isAddContactChanged)
     Q_INVOKABLE void autorisation(const QString &login, const QString &pass);
     Q_INVOKABLE void registration(const QString &login, const QString &pass);
     Q_INVOKABLE void toConnect(const QString &ip, const quint16 &port);
@@ -47,6 +48,7 @@ public:
     bool isUnconnecting();
     bool isAutorisation();
     bool isRegistration();
+    bool isAddContact();
     QScopedPointer<ProxyFilterModel> &getDialogModel();
     QScopedPointer<ContactModel> &getContactModel();
     void saveDialogs();
@@ -63,6 +65,7 @@ signals:
     void isUnconnectingChanged();
     void isAutorisationChanged();
     void isRegistrationChanged();
+    void isAddContactChanged();
 
 private:
     QScopedPointer<DialogModel> messageModel_;
@@ -73,8 +76,11 @@ private:
     bool unconnecting_ = false;
     bool autorisation_  = false;
     bool registration_ = false;
+    bool addContact_ = false;
     AccData accData_;
     QByteArray data_;
     qint16 blockSize_ = 0;
-    QHash<QString, qintptr> clients_;
+    //QHash<QString, qintptr> clients_;
+    //QList<QString> conacts_;
+    QHash<QString, bool> conacts_;
 };
